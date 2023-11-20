@@ -39,7 +39,6 @@
             this._velocitySlider = new System.Windows.Forms.TrackBar();
             this._moveNegativeButton = new System.Windows.Forms.Button();
             this._movePositiveButton = new System.Windows.Forms.Button();
-            this._positionBox = new System.Windows.Forms.TextBox();
             this._toolTip = new System.Windows.Forms.ToolTip(this.components);
             this._driveGroupBox = new System.Windows.Forms.GroupBox();
             this._timer = new System.Windows.Forms.Timer(this.components);
@@ -124,15 +123,15 @@
             resources.ApplyResources(label1, "label1");
             label1.Name = "label1";
             // 
-            // _velocityTrackBar
+            // _velocitySlider
             // 
-            resources.ApplyResources(this._velocitySlider, "_velocityTrackBar");
+            resources.ApplyResources(this._velocitySlider, "_velocitySlider");
             this._velocitySlider.LargeChange = 10;
             this._velocitySlider.Maximum = 100;
             this._velocitySlider.Minimum = 10;
-            this._velocitySlider.Name = "_velocityTrackBar";
+            this._velocitySlider.Name = "_velocitySlider";
             this._velocitySlider.TickFrequency = 5;
-            this._toolTip.SetToolTip(this._velocitySlider, resources.GetString("_velocityTrackBar.ToolTip"));
+            this._toolTip.SetToolTip(this._velocitySlider, resources.GetString("_velocitySlider.ToolTip"));
             this._velocitySlider.Value = 100;
             // 
             // _moveNegativeButton
@@ -153,17 +152,10 @@
             // 
             // measurementGroupBox
             // 
-            measurementGroupBox.Controls.Add(this._positionBox);
             measurementGroupBox.Controls.Add(label4);
             resources.ApplyResources(measurementGroupBox, "measurementGroupBox");
             measurementGroupBox.Name = "measurementGroupBox";
             measurementGroupBox.TabStop = false;
-            // 
-            // _positionBox
-            // 
-            resources.ApplyResources(this._positionBox, "_positionBox");
-            this._positionBox.Name = "_positionBox";
-            this._positionBox.ReadOnly = true;
             // 
             // label4
             // 
@@ -180,7 +172,7 @@
             // 
             // _timer
             // 
-            this._timer.Tick += new System.EventHandler(this.OnTimerTick);
+            //this._timer.Tick += new System.EventHandler(this.OnTimerTick);
             // 
             // HelloWorldForm
             // 
@@ -213,7 +205,6 @@
         private System.Windows.Forms.GroupBox _driveGroupBox;
         private System.Windows.Forms.TrackBar _velocitySlider;
         private System.Windows.Forms.Timer _timer;
-        private System.Windows.Forms.TextBox _positionBox;
     }
 }
 

@@ -183,12 +183,12 @@ namespace Triamec.Tam.Samples {
         /// <summary>
         /// Measures the axis position and shows it in the GUI.
         /// </summary>
-        void ReadPosition() {
-            var register = (Axis)_axis.Register;
-            var positionRegister = register.Signals.PositionController.MasterPosition;
-            var position = positionRegister.Read();
-            _positionBox.Text = $"{position:F2} {_unit}";
-        }
+        //void ReadPosition() {
+        //    var register = (Axis)_axis.Register;
+        //    var positionRegister = register.Signals.PositionController.MasterPosition;
+        //    var position = positionRegister.Read();
+        //    _positionBox.Text = $"{position:F2} {_unit}";
+        //}
         #endregion Hello world code
 
         #region GUI handler methods
@@ -271,7 +271,7 @@ namespace Triamec.Tam.Samples {
         #endregion Menu handler methods
 
         #region Timer methods
-        void OnTimerTick(object sender, EventArgs e) => ReadPosition();
+        //void OnTimerTick(object sender, EventArgs e) => ReadPosition();
 
         #endregion Timer methods
         #endregion GUI handler methods
