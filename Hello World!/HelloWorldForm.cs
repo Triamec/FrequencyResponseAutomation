@@ -178,7 +178,7 @@ namespace Triamec.Tam.Samples {
 
             // Move a distance with dedicated velocity.
             // If the axis is just moving, it is reprogrammed with this command.
-            _axis.MoveRelative(Math.Sign(sign) * Distance, _velocityMaximum * _velocitySlider.Value * 0.01f);
+            _axis.MoveRelative(Math.Sign(sign) * Distance, _velocityMaximum);
 
         /// <summary>
         /// Measures the axis position and shows it in the GUI.
