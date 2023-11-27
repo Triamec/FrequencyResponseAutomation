@@ -31,6 +31,7 @@
             System.Windows.Forms.ToolStripMenuItem fileToolStripMenuItem;
             System.Windows.Forms.ToolStripMenuItem exitMenuItem;
             System.Windows.Forms.GroupBox motionGroupBox;
+            this._measureButton = new System.Windows.Forms.Button();
             this._moveNegativeButton = new System.Windows.Forms.Button();
             this._movePositiveButton = new System.Windows.Forms.Button();
             this._toolTip = new System.Windows.Forms.ToolTip(this.components);
@@ -85,11 +86,20 @@
             // 
             // motionGroupBox
             // 
+            motionGroupBox.Controls.Add(this._measureButton);
             motionGroupBox.Controls.Add(this._moveNegativeButton);
             motionGroupBox.Controls.Add(this._movePositiveButton);
             resources.ApplyResources(motionGroupBox, "motionGroupBox");
             motionGroupBox.Name = "motionGroupBox";
             motionGroupBox.TabStop = false;
+            // 
+            // _measureButton
+            // 
+            resources.ApplyResources(this._measureButton, "_measureButton");
+            this._measureButton.Name = "_measureButton";
+            this._toolTip.SetToolTip(this._measureButton, resources.GetString("_measureButton.ToolTip"));
+            this._measureButton.UseVisualStyleBackColor = true;
+            this._measureButton.Click += new System.EventHandler(this.OnMeasureButtonClick);
             // 
             // _moveNegativeButton
             // 
@@ -140,6 +150,7 @@
         private System.Windows.Forms.Button _movePositiveButton;
         private System.Windows.Forms.GroupBox _driveGroupBox;
         private System.Windows.Forms.Timer _timer;
+        private System.Windows.Forms.Button _measureButton;
     }
 }
 

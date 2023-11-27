@@ -180,15 +180,9 @@ namespace Triamec.Tam.Samples {
             // If the axis is just moving, it is reprogrammed with this command.
             _axis.MoveRelative(Math.Sign(sign) * Distance, _velocityMaximum);
 
-        /// <summary>
-        /// Measures the axis position and shows it in the GUI.
-        /// </summary>
-        //void ReadPosition() {
-        //    var register = (Axis)_axis.Register;
-        //    var positionRegister = register.Signals.PositionController.MasterPosition;
-        //    var position = positionRegister.Read();
-        //    _positionBox.Text = $"{position:F2} {_unit}";
-        //}
+        void Measure() {
+
+        }
         #endregion Hello world code
 
         #region GUI handler methods
@@ -263,6 +257,12 @@ namespace Triamec.Tam.Samples {
                     MessageBoxIcon.Information, MessageBoxDefaultButton.Button1, 0);
             }
         }
+
+        private void OnMeasureButtonClick(object sender, EventArgs e) {
+            Console.WriteLine("Measure Clicked");
+        }
+
+
         #endregion Button handler methods
 
         #region Menu handler methods
@@ -274,6 +274,9 @@ namespace Triamec.Tam.Samples {
         //void OnTimerTick(object sender, EventArgs e) => ReadPosition();
 
         #endregion Timer methods
+
         #endregion GUI handler methods
+
+
     }
 }

@@ -197,21 +197,6 @@
   <metadata name="fileToolStripMenuItem.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
     <value>False</value>
   </metadata>
-  <metadata name="exitMenuItem.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-    <value>False</value>
-  </metadata>
-  <data name="exitMenuItem.Size" type="System.Drawing.Size, System.Drawing">
-    <value>93, 22</value>
-  </data>
-  <data name="exitMenuItem.Text" xml:space="preserve">
-    <value>E&amp;xit</value>
-  </data>
-  <data name="fileToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
-    <value>37, 20</value>
-  </data>
-  <data name="fileToolStripMenuItem.Text" xml:space="preserve">
-    <value>&amp;File</value>
-  </data>
   <data name="menuStrip.Location" type="System.Drawing.Point, System.Drawing">
     <value>0, 0</value>
   </data>
@@ -236,9 +221,64 @@
   <data name="&gt;&gt;menuStrip.ZOrder" xml:space="preserve">
     <value>2</value>
   </data>
+  <metadata name="fileToolStripMenuItem.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+    <value>False</value>
+  </metadata>
+  <metadata name="exitMenuItem.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+    <value>False</value>
+  </metadata>
+  <data name="fileToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
+    <value>37, 20</value>
+  </data>
+  <data name="fileToolStripMenuItem.Text" xml:space="preserve">
+    <value>&amp;File</value>
+  </data>
+  <metadata name="exitMenuItem.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+    <value>False</value>
+  </metadata>
+  <data name="exitMenuItem.Size" type="System.Drawing.Size, System.Drawing">
+    <value>93, 22</value>
+  </data>
+  <data name="exitMenuItem.Text" xml:space="preserve">
+    <value>E&amp;xit</value>
+  </data>
   <metadata name="motionGroupBox.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
     <value>False</value>
   </metadata>
+  <data name="_measureButton.Font" type="System.Drawing.Font, System.Drawing">
+    <value>Verdana, 14.25pt, style=Bold, Italic</value>
+  </data>
+  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="_measureButton.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="_measureButton.Location" type="System.Drawing.Point, System.Drawing">
+    <value>71, 75</value>
+  </data>
+  <data name="_measureButton.Size" type="System.Drawing.Size, System.Drawing">
+    <value>123, 50</value>
+  </data>
+  <data name="_measureButton.TabIndex" type="System.Int32, mscorlib">
+    <value>5</value>
+  </data>
+  <data name="_measureButton.Text" xml:space="preserve">
+    <value>&amp;Measure</value>
+  </data>
+  <data name="_measureButton.ToolTip" xml:space="preserve">
+    <value>Starts measurement</value>
+  </data>
+  <data name="&gt;&gt;_measureButton.Name" xml:space="preserve">
+    <value>_measureButton</value>
+  </data>
+  <data name="&gt;&gt;_measureButton.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;_measureButton.Parent" xml:space="preserve">
+    <value>motionGroupBox</value>
+  </data>
+  <data name="&gt;&gt;_measureButton.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
   <data name="_moveNegativeButton.Enabled" type="System.Boolean, mscorlib">
     <value>False</value>
   </data>
@@ -270,7 +310,7 @@
     <value>motionGroupBox</value>
   </data>
   <data name="&gt;&gt;_moveNegativeButton.ZOrder" xml:space="preserve">
-    <value>0</value>
+    <value>1</value>
   </data>
   <data name="_movePositiveButton.Enabled" type="System.Boolean, mscorlib">
     <value>False</value>
@@ -303,7 +343,7 @@
     <value>motionGroupBox</value>
   </data>
   <data name="&gt;&gt;_movePositiveButton.ZOrder" xml:space="preserve">
-    <value>1</value>
+    <value>2</value>
   </data>
   <data name="motionGroupBox.Location" type="System.Drawing.Point, System.Drawing">
     <value>12, 115</value>
