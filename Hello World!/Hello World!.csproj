@@ -87,7 +87,10 @@
       <Version>7.1.13</Version>
     </PackageReference>
     <PackageReference Include="Triamec.Tam.TriaLink">
-      <Version>7.19.0</Version>
+      <Version>7.19.4-beta.1</Version>
+    </PackageReference>
+    <PackageReference Include="Triamec.Tam.UI">
+      <Version>7.21.0-beta.1</Version>
     </PackageReference>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
