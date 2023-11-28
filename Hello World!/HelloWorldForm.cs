@@ -195,7 +195,41 @@ namespace Triamec.Tam.Samples {
             _axis.MoveRelative(Math.Sign(sign) * Distance, _velocityMaximum);
 
         void Measure() {
+            // Does not contain any asserts, but ensures the principal Frequency Response acquirement mechanism is tested
 
+            #region Setup special culture
+            var culture = new CultureInfo(CultureInfo.InvariantCulture.LCID, false);
+            Thread thread = Thread.CurrentThread;
+            CultureInfo backupCulture = thread.CurrentCulture;
+            thread.CurrentCulture = culture;
+            #endregion Setup special culture
+
+            try {
+                FrequencyResponseAxis axis = SetupFrequencyResponseAxis();
+
+                var signal = new AutoResetEvent(initialState: false);
+
+                Func<AutoResetEvent, IFrequencyResponseAxis, CultureInfo, IFrequencyResponseLogic> worker = StartFrequencyResponse;
+                IAsyncResult asyncResult = worker.BeginInvoke(signal, axis, culture, null, null);
+                try {
+                    var wait = new TimeSpan(0, 0, 3, 0, 0);
+                    if (!signal.WaitOne(wait, false)) {
+                        Console.WriteLine(string.Format("The test duration exceeded {0} minutes", wait.TotalMinutes));
+                        return;
+                    }
+                } finally {
+                    IFrequencyResponseLogic logic = worker.EndInvoke(asyncResult);
+                    logic.GetFrequencyResponseResultCancel();
+                    logic.Dispose();
+                    axis.Tidy();
+                    string signalsFile = _callback.SignalsFile;
+                    string resultFile = _callback.ResultFile;
+                    _callback.Dispose();
+
+                }
+            } finally {
+                thread.CurrentCulture = backupCulture;
+            }
         }
         #endregion Hello world code
 
@@ -273,77 +307,13 @@ namespace Triamec.Tam.Samples {
         }
 
         private void OnMeasureButtonClick(object sender, EventArgs e) {
-            // Does not contain any asserts, but ensures the principal Frequency Response acquirement mechanism is tested
-
-            const string negativeSign = "^";
-            const string decimalSeparator = "°";
-            const string listSeparator = "¨";
-
-            #region Setup special culture
-            var culture = new CultureInfo(CultureInfo.InvariantCulture.LCID, false);
-
-            // make the current culture somewhat disturbed
-            culture.NumberFormat.NumberDecimalSeparator = decimalSeparator;
-            culture.NumberFormat.NegativeSign = negativeSign;
-            culture.TextInfo.ListSeparator = listSeparator;
-
-            Thread thread = Thread.CurrentThread;
-            CultureInfo backupCulture = thread.CurrentCulture;
-            thread.CurrentCulture = culture;
-            #endregion Setup special culture
-
-            //FrequencyResponseLogicCallback _callback = _callback = new FrequencyResponseLogicCallback(logic, signal, this, formatProvider, log); ;
-
-
-
             try {
-                FrequencyResponseAxis axis = SetupFrequencyResponseAxis();
-
-                var signal = new AutoResetEvent(initialState: false);
-
-                Func<AutoResetEvent, IFrequencyResponseAxis, CultureInfo, IFrequencyResponseLogic> worker = StartFrequencyResponse;
-                IAsyncResult asyncResult = worker.BeginInvoke(signal, axis, culture, null, null);
-                try {
-                    var wait = new TimeSpan(0, 0, 3, 0, 0);
-                    if (!signal.WaitOne(wait, false)) {
-                        //Assert.Fail(string.Format("The test duration exceeded {0} minutes", wait.TotalMinutes));
-                    }
-                } finally {
-                    IFrequencyResponseLogic logic = worker.EndInvoke(asyncResult);
-                    logic.GetFrequencyResponseResultCancel();
-                    logic.Dispose();
-                    axis.Tidy();
-                    string signalsFile = _callback.SignalsFile;
-                    string resultFile = _callback.ResultFile;
-                    _callback.Dispose();
-
-                }
-            } finally {
-                thread.CurrentCulture = backupCulture;
-
-                //// save space in report dirs.
-                //if (File.Exists(_callback.SignalsFile)) File.Delete(_callback.SignalsFile);
-                //if (File.Exists(_callback.ResultFile)) File.Delete(_callback.ResultFile);
+                Measure();
+            } catch (TamException ex) {
+                MessageBox.Show(ex.Message, Resources.MoveErrorCaption, MessageBoxButtons.OK,
+                    MessageBoxIcon.Information, MessageBoxDefaultButton.Button1, 0);
             }
         }
-
-        //IFrequencyResponseLogic StartFrequencyResponse(AutoResetEvent signal, IFrequencyResponseAxis axis, CultureInfo formatProvider, ILog log) {
-        //    IFrequencyResponseLogic logic = new FrequencyResponseLogic();
-        //    var parameters = new FrequencyResponseParameters(3) {
-        //        FrequencyRange = new NIRange(10, 10000),
-        //        FrequencySteps = 10,
-        //        Spacing = FrequencySpacing.Logarithmic,
-        //        SettlingTime = TimeSpan.FromSeconds(0.2)
-        //    };
-        //    parameters.SetMeasuringPointMaximum(0, 10);
-        //    parameters.SetMeasuringPointMaximum(1, 0.8);
-        //    parameters.SetMeasuringPointMaximum(2, 100);
-
-        //    _callback = new FrequencyResponseLogicCallback(logic, signal, this, formatProvider, log);
-
-        //    logic.GetFrequencyResponseResultAsync(axis, parameters);
-        //    return logic;
-        //}
 
         FrequencyResponseAxis SetupFrequencyResponseAxis() =>
 
@@ -381,46 +351,6 @@ namespace Triamec.Tam.Samples {
             logic.GetFrequencyResponseResultAsync(axis, parameters);
             return logic;
         }
-
-        /// <summary>
-        /// Gets the proportion between the frame counter period and the period of the packets acquired by the Frequency Response test.
-        /// </summary>
-        //ushort FrameCountToPacketResolution(FrequencyResponseAxis axis) {
-
-        //    var samplingTime = axis.SamplingTime;
-        //    var subscriptionSpeed = Enum.GetValues(typeof(SubscriptionSpeed))
-        //                                .OfType<SubscriptionSpeed>()
-        //                                .Single(speed => axis.GetSamplingTime(speed) == axis.SamplingTime);
-        //    PublishSpeed publishSpeed = axis.ComputePublishSpeed(subscriptionSpeed);
-        //    var frameCountResolution = axis.FrameCountResolution;
-        //    return (ushort)(frameCountResolution * publishSpeed.SamplesPerPacket);
-        //}
-
-        /// <summary>
-        /// Gets the maximum size of a measurement in the unit of <see cref="SignalParameters.FrameSize"/>.
-        /// </summary>
-        //ushort MaximalFrameSize(FrequencyResponseAxis axis) {
-
-        //    // When the trigger is first activated, the published values must all belong to the frame.
-        //    // We cannot just take 0 as level because then we would publish data from the time when the frame counter
-        //    // was actually at level -1.
-        //    // the last sample we get is at least one index above triggerLevel
-        //    // with FrameCountToPacketResolution(axis) = 10, we have this possible sample ranges for the 1st packet:
-        //    // [0..9]..[8..17]
-        //    var triggerLevel = FrameCountToPacketResolution(axis) - 1;
-
-        //    // This value could be one sample smaller because the drive produces values from 0..frameSize which is
-        //    // actually one sample more than requested
-        //    //frameBorderSize = (ushort)triggerLevel;
-
-        //    // Workaround for b332:
-        //    // sometimes, the cc may be delayed by 10us. The theoretical worst case is each 100us.
-        //    // therefore, one tenth of the maximal frame counter value is needed as buffer.
-        //    var frameBorderSize = (ushort)(triggerLevel + ushort.MaxValue / 10 + 1);
-
-        //    return (ushort)(ushort.MaxValue - frameBorderSize);
-        //}
-
 
         #endregion FrequencyResponseLogic helpers
 
