@@ -308,10 +308,13 @@ namespace Triamec.Tam.Samples {
 
         private void OnMeasureButtonClick(object sender, EventArgs e) {
             try {
+                _measureButton.Enabled = false;
                 Measure();
             } catch (TamException ex) {
                 MessageBox.Show(ex.Message, Resources.MoveErrorCaption, MessageBoxButtons.OK,
                     MessageBoxIcon.Information, MessageBoxDefaultButton.Button1, 0);
+            } finally {
+                _measureButton.Enabled = true;
             }
         }
 
@@ -342,11 +345,17 @@ namespace Triamec.Tam.Samples {
                 Spacing = FrequencySpacing.Logarithmic,
                 SettlingTime = TimeSpan.FromSeconds(0.2)
             };
-            parameters.SetMeasuringPointMaximum(0, 10);
-            parameters.SetMeasuringPointMaximum(1, 0.8);
-            parameters.SetMeasuringPointMaximum(2, 100);
+            parameters.SetMeasuringPointMaximum(0, 10);     // Limit Output [V]
+            parameters.SetMeasuringPointMaximum(1, 0.8);    // Limit Current [A]
+            parameters.SetMeasuringPointMaximum(2, 100);    // Limit Position [user units]
 
             _callback = new FrequencyResponseLogicCallback(logic, signal, formatProvider);
+            string desiredMethod = "Open Loop";
+           var methods = FrequencyResponseConfig.Read()
+								  .MeasurementMethods
+								  .Where(axis.SupportsMethod)
+								  .ToArray();
+            axis.MeasurementMethod = methods.Single(method => method.Name == desiredMethod);
 
             logic.GetFrequencyResponseResultAsync(axis, parameters);
             return logic;
