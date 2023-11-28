@@ -36,11 +36,22 @@ namespace Triamec.Tam.Samples {
         }
         #endregion Constructor
 
+        #region Frequency Response measurement parameters
+        int measurementFrequency = 100000; // [Hz]
+        int minimumFrequency = 50; // [Hz]
+        int maximumFrequency = 400; // [Hz]
+        int numberOfSamples = 10; // [-]
+        FrequencySpacing frequencySpacing = FrequencySpacing.Optimized;
+        string selectedMethod = "Closed Loop";
+        double[] excitationLimits = new double[] { 13.8, 0.5, 10 };
+        #endregion Frequency Response measurement parameters
+
+
         #region Hello world code
         /// <summary>
         /// The configuration file for simulated mode.
         /// </summary>
-        const string ConfigurationPath = "HelloWorld.TAMcfg";
+        //const string ConfigurationPath = "HelloWorld.TAMcfg";
 
         /// <summary>
         /// The name of the axis this demo works with.
@@ -94,32 +105,32 @@ namespace Triamec.Tam.Samples {
             components.Add(_topology);
 
             TamSystem system;
-            if (_offline) {
-                using (var deserializer = new Deserializer()) {
+            //if (_offline) {
+            //    using (var deserializer = new Deserializer()) {
 
-                    // Load and add a simulated TAM system as defined in the .TAMcfg file.
-                    deserializer.Load(ConfigurationPath);
-                    var adapters = CreateSimulatedTriaLinkAdapters(deserializer.Configuration).First();
-                    system = _topology.ConnectTo(adapters.Key, adapters.ToArray());
+            //        // Load and add a simulated TAM system as defined in the .TAMcfg file.
+            //        deserializer.Load(ConfigurationPath);
+            //        var adapters = CreateSimulatedTriaLinkAdapters(deserializer.Configuration).First();
+            //        system = _topology.ConnectTo(adapters.Key, adapters.ToArray());
 
-                    // Boot the Tria-Link so that it learns about connected stations.
-                    system.Identify();
-                }
+            //        // Boot the Tria-Link so that it learns about connected stations.
+            //        system.Identify();
+            //    }
 
-                // Load a TAM configuration.
-                // This API doesn't feature GUI. Refer to the Gear Up! example which uses an API exposing a GUI.
-                _topology.Load(ConfigurationPath);
-            } else {
+            //    // Load a TAM configuration.
+            //    // This API doesn't feature GUI. Refer to the Gear Up! example which uses an API exposing a GUI.
+            //    _topology.Load(ConfigurationPath);
+            //} else {
 
-                // Add the local TAM system on this PC to the topology.
-                system = _topology.AddLocalSystem();
+            // Add the local TAM system on this PC to the topology.
+            system = _topology.AddLocalSystem();
 
-                // Boot the Tria-Link so that it learns about connected stations.
-                system.Identify();
+            // Boot the Tria-Link so that it learns about connected stations.
+            system.Identify();
 
-                // Don't load TAM configuration, assuming that the drive is already configured,
-                // for example since parametrization is persisted in the drive.
-            }
+            // Don't load TAM configuration, assuming that the drive is already configured,
+            // for example since parametrization is persisted in the drive.
+            //}
 
             // Find the axis with the configured name in the Tria-Link.
             // The AsDepthFirstLeaves extension method performs a tree search an returns all instances of type TamAxis.
@@ -339,24 +350,27 @@ namespace Triamec.Tam.Samples {
         /// </returns>
         IFrequencyResponseLogic StartFrequencyResponse(AutoResetEvent signal, IFrequencyResponseAxis axis, CultureInfo formatProvider) {
             IFrequencyResponseLogic logic = new FrequencyResponseLogic();
-            var parameters = new FrequencyResponseParameters(3) {
-                FrequencyRange = new NIRange(10, 10000),
-                FrequencySteps = 10,
-                Spacing = FrequencySpacing.Logarithmic,
-                SettlingTime = TimeSpan.FromSeconds(0.2)
+            var parameters = new FrequencyResponseParameters(excitationLimits.Length) {
+                FrequencyRange = new NIRange(minimumFrequency, maximumFrequency),
+                FrequencySteps = numberOfSamples,
+                Spacing = frequencySpacing,
+                SettlingTime = TimeSpan.FromSeconds(0.2),
+                //           MeasurementMethod = _axis.MeasurementMethod.Name,
+                //SamplingTime = _axis.SamplingTime
             };
-            parameters.SetMeasuringPointMaximum(0, 10);     // Limit Output [V]
-            parameters.SetMeasuringPointMaximum(1, 0.8);    // Limit Current [A]
-            parameters.SetMeasuringPointMaximum(2, 100);    // Limit Position [user units]
+            for (int i = 0; i < excitationLimits.Length; i++) {
+                parameters.SetMeasuringPointMaximum(i, excitationLimits[i]);
+            }
+
 
             _callback = new FrequencyResponseLogicCallback(logic, signal, formatProvider);
-            string desiredMethod = "Open Loop";
-           var methods = FrequencyResponseConfig.Read()
-								  .MeasurementMethods
-								  .Where(axis.SupportsMethod)
-								  .ToArray();
+            string desiredMethod = selectedMethod;
+            var methods = FrequencyResponseConfig.Read()
+                                   .MeasurementMethods
+                                   .Where(axis.SupportsMethod)
+                                   .ToArray();
             axis.MeasurementMethod = methods.Single(method => method.Name == desiredMethod);
-
+            axis.SamplingTime = TimeSpan.FromTicks(TimeSpan.TicksPerSecond / measurementFrequency);
             logic.GetFrequencyResponseResultAsync(axis, parameters);
             return logic;
         }
