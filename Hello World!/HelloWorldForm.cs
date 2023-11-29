@@ -213,17 +213,13 @@ namespace Triamec.Tam.Samples {
             }
         }
 
-        async void StartBackAndForthMove() {
+        async Task StartBackAndForthMove() {
             float backAndForthDistance = 20;
             float backAndForthVelocity = 2;
-            int incrementSleep = 50;
             TimeSpan moveTimeout = new TimeSpan(0, 0, 10);
             while(true) {
-                _axis.MoveRelative(backAndForthDistance / 2, backAndForthVelocity).WaitForSuccess(moveTimeout);
-                //_axis.M
-                //if (_axis.ReadAxisState() > AxisState.Standstill) await Task.Delay(incrementSleep);
-                _axis.MoveRelative(-backAndForthDistance / 2, backAndForthVelocity).WaitForSuccess(moveTimeout);
-                //if (_axis.ReadAxisState() > AxisState.Standstill) await Task.Delay(incrementSleep);
+                await _axis.MoveRelative(backAndForthDistance / 2, backAndForthVelocity).WaitForSuccessAsync(moveTimeout);
+                await _axis.MoveRelative(-backAndForthDistance / 2, backAndForthVelocity).WaitForSuccessAsync(moveTimeout);
             }
         }
 
@@ -305,14 +301,14 @@ namespace Triamec.Tam.Samples {
         void OnMeasureButtonClick(object sender, EventArgs e) {
             try {
                 _measureButton.Enabled = false;
-                //StartBackAndForthMove();
-                Measure();
+                //await StartBackAndForthMove();
+                //Measure();
 
-                //Task moveTask = Task.Run(() => StartBackAndForthMove());
-                //Task measureTask = Task.Run(() => Measure());
+                Task moveTask = Task.Run(() => StartBackAndForthMove());
+                Task measureTask = Task.Run(() => Measure());
 
                 //// Wait for both tasks to complete
-                //Task.WaitAll(measureTask);
+                Task.WaitAll(measureTask);
 
             } catch (TamException ex) {
                 MessageBox.Show(ex.Message, Resources.MoveErrorCaption, MessageBoxButtons.OK,
@@ -343,13 +339,11 @@ namespace Triamec.Tam.Samples {
         /// </returns>
         IFrequencyResponseLogic StartFrequencyResponse(AutoResetEvent signal, IFrequencyResponseAxis axis, CultureInfo formatProvider) {
             IFrequencyResponseLogic logic = new FrequencyResponseLogic();
-            var parameters = new FrequencyResponseParameters(excitationLimits.Length) {
+            var parameters = new FrequencyResponseParameters(axis) {
                 FrequencyRange = new NIRange(minimumFrequency, maximumFrequency),
                 FrequencySteps = numberOfSamples,
                 Spacing = frequencySpacing,
                 SettlingTime = TimeSpan.FromSeconds(0.2),
-                //           MeasurementMethod = _axis.MeasurementMethod.Name,
-                //SamplingTime = _axis.SamplingTime
             };
             for (int i = 0; i < excitationLimits.Length; i++) {
                 parameters.SetMeasuringPointMaximum(i, excitationLimits[i]);
