@@ -21,6 +21,7 @@ using Triamec.TriaLink.Subscriptions;
 // Rlid19 represents the register layout of drives of the current generation. A previous generation drive has layout 4.
 using Axis = Triamec.Tam.Rlid19.Axis;
 using Triamec.Diagnostics;
+using System.Threading.Tasks;
 
 namespace Triamec.Tam.Samples {
     /// <summary>
@@ -43,7 +44,7 @@ namespace Triamec.Tam.Samples {
         int numberOfSamples = 10; // [-]
         FrequencySpacing frequencySpacing = FrequencySpacing.Optimized;
         string selectedMethod = "Closed Loop";
-        double[] excitationLimits = new double[] { 13.8, 0.5, 10 };
+        double[] excitationLimits = new double[] { 13.8, 0.5, 0.5 };
         #endregion Frequency Response measurement parameters
 
 
@@ -68,13 +69,6 @@ namespace Triamec.Tam.Samples {
         // Additionally, the encoder must be correctly configured.
         // Consider any limit stops.
         const double Distance = 0.5 * Math.PI;
-
-        /// <summary>
-        /// Whether to use a (rather simplified) simulation of the axis.
-        /// </summary>
-        // CAUTION!
-        // Ensure the above constants are properly configured before setting this to false.
-        readonly bool _offline = false;
 
         TamTopology _topology;
         TamAxis _axis;
@@ -105,22 +99,6 @@ namespace Triamec.Tam.Samples {
             components.Add(_topology);
 
             TamSystem system;
-            //if (_offline) {
-            //    using (var deserializer = new Deserializer()) {
-
-            //        // Load and add a simulated TAM system as defined in the .TAMcfg file.
-            //        deserializer.Load(ConfigurationPath);
-            //        var adapters = CreateSimulatedTriaLinkAdapters(deserializer.Configuration).First();
-            //        system = _topology.ConnectTo(adapters.Key, adapters.ToArray());
-
-            //        // Boot the Tria-Link so that it learns about connected stations.
-            //        system.Identify();
-            //    }
-
-            //    // Load a TAM configuration.
-            //    // This API doesn't feature GUI. Refer to the Gear Up! example which uses an API exposing a GUI.
-            //    _topology.Load(ConfigurationPath);
-            //} else {
 
             // Add the local TAM system on this PC to the topology.
             system = _topology.AddLocalSystem();
@@ -128,9 +106,6 @@ namespace Triamec.Tam.Samples {
             // Boot the Tria-Link so that it learns about connected stations.
             system.Identify();
 
-            // Don't load TAM configuration, assuming that the drive is already configured,
-            // for example since parametrization is persisted in the drive.
-            //}
 
             // Find the axis with the configured name in the Tria-Link.
             // The AsDepthFirstLeaves extension method performs a tree search an returns all instances of type TamAxis.
@@ -143,19 +118,14 @@ namespace Triamec.Tam.Samples {
             // You should not do this, though, when this application is about to access the drive via the PCI interface.
             _axis.ControlSystemTreatment.Override(enabled: true);
 
-            // Simulation always starts up with LinkNotReady error, which we acknowledge.
-            if (_offline) _axis.Drive.ResetFault();
-
             // Get the register layout of the axis
             // and cast it to the RLID-specific register layout.
             var register = (Axis)_axis.Register;
 
-            // Read and cache the original velocity maximum value,
-            // which was applied from the configuration file.
-            _velocityMaximum = register.Parameters.PathPlanner.VelocityMaximum.Read();
-
             // Cache the position unit.
             _unit = register.Parameters.PositionController.PositionUnit.Read().ToString();
+
+            _axis.Drive.AddStateObserver(this);
 
             // Start displaying the position in regular intervals.
             _timer.Start();
@@ -242,6 +212,21 @@ namespace Triamec.Tam.Samples {
                 thread.CurrentCulture = backupCulture;
             }
         }
+
+        async void StartBackAndForthMove() {
+            float backAndForthDistance = 20;
+            float backAndForthVelocity = 2;
+            int incrementSleep = 50;
+            TimeSpan moveTimeout = new TimeSpan(0, 0, 10);
+            while(true) {
+                _axis.MoveRelative(backAndForthDistance / 2, backAndForthVelocity).WaitForSuccess(moveTimeout);
+                //_axis.M
+                //if (_axis.ReadAxisState() > AxisState.Standstill) await Task.Delay(incrementSleep);
+                _axis.MoveRelative(-backAndForthDistance / 2, backAndForthVelocity).WaitForSuccess(moveTimeout);
+                //if (_axis.ReadAxisState() > AxisState.Standstill) await Task.Delay(incrementSleep);
+            }
+        }
+
         #endregion Hello world code
 
         #region GUI handler methods
@@ -317,10 +302,18 @@ namespace Triamec.Tam.Samples {
             }
         }
 
-        private void OnMeasureButtonClick(object sender, EventArgs e) {
+        void OnMeasureButtonClick(object sender, EventArgs e) {
             try {
                 _measureButton.Enabled = false;
+                //StartBackAndForthMove();
                 Measure();
+
+                //Task moveTask = Task.Run(() => StartBackAndForthMove());
+                //Task measureTask = Task.Run(() => Measure());
+
+                //// Wait for both tasks to complete
+                //Task.WaitAll(measureTask);
+
             } catch (TamException ex) {
                 MessageBox.Show(ex.Message, Resources.MoveErrorCaption, MessageBoxButtons.OK,
                     MessageBoxIcon.Information, MessageBoxDefaultButton.Button1, 0);
