@@ -10,6 +10,7 @@ using Triamec.FrequencyResponse;
 using Triamec.Diagnostics;
 using Triamec.Tam.Samples;
 using System.Diagnostics;
+using System.Threading.Tasks;
 
 namespace Triamec.Tam.FrequencyResponse.NUnit {
 	/// <summary>
@@ -18,10 +19,7 @@ namespace Triamec.Tam.FrequencyResponse.NUnit {
 	internal class FrequencyResponseLogicCallback {
 
 		#region Read-only fields
-		/// <summary>
-		/// Signal to set when the Frequency Response measurement has completed.
-		/// </summary>
-		readonly AutoResetEvent _signal;
+		readonly TaskCompletionSource<object> _tcs;
 
 		/// <summary>
 		/// The format provider to use.
@@ -40,20 +38,18 @@ namespace Triamec.Tam.FrequencyResponse.NUnit {
 		/// Initializes a new instance of the <see cref="FrequencyResponseLogicCallback"/> class.
 		/// </summary>
 		/// <param name="logic">The Frequency Response measurement instance.</param>
-		/// <param name="signal">The signal to set when the Frequency Response measurement has completed.</param>
 		/// <param name="testFixture">A Reference to test data.</param>
 		/// <param name="formatProvider">The format provider.</param>
 		/// <param name="log">The log.</param>
 		/// <exception cref="ArgumentNullException">One of the arguments is <see langword="null"/>.</exception>
-		public FrequencyResponseLogicCallback(IFrequencyResponseLogic logic, AutoResetEvent signal,
-			CultureInfo formatProvider) {
+		public FrequencyResponseLogicCallback(TaskCompletionSource<object> tcs, IFrequencyResponseLogic logic, CultureInfo formatProvider) {
 
 			if (logic == null) throw new ArgumentNullException(nameof(logic));
 			logic.GetFrequencyResponseResultCompleted += OnGetFrequencyResponseResultCompletedEvent;
+            _tcs = tcs;
 
-			_signal = signal ?? throw new ArgumentNullException(nameof(signal));
-			//if (testFixture == null) throw new ArgumentNullException(nameof(testFixture));
-			_formatProvider = formatProvider;
+            //if (testFixture == null) throw new ArgumentNullException(nameof(testFixture));
+            _formatProvider = formatProvider;
 			string testDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Frequency Response");
 			if (!Directory.Exists(testDir)) {
 				Directory.CreateDirectory(testDir);
@@ -79,25 +75,32 @@ namespace Triamec.Tam.FrequencyResponse.NUnit {
 		/// <param name="args">The <see cref="FrequencyResponseResultCompletedEventArgs"/> instance containing the event data.
 		/// </param>
 		void OnGetFrequencyResponseResultCompletedEvent(object sender, FrequencyResponseResultCompletedEventArgs args) {
-			// use custom culture to save the file
-			Thread.CurrentThread.CurrentCulture = _formatProvider;
+			Task.Run(() => {
+				// use custom culture to save the file
+				Thread.CurrentThread.CurrentCulture = _formatProvider;
+				if (args.Canceled) {
+					_tcs.TrySetCanceled();
+				} else {
+					FrequencyResponseResult result = args.Result;
+					if (result != null) {
+						for (int i = 0; i < result.ResponseCount; ++i) {
+							var builder = new StringBuilder();
+							builder.AppendFormat(_formatProvider, "{0}", result.GetFrequency(i));
+							for (int j = 0; j < result.Count; j++) {
+								builder.AppendFormat(_formatProvider, ",{0},{1}", result.GetFrequency(i),
+									result.Getresult(i)[j].Real, result.Getresult(i)[j].Imaginary);
+							}
+							//_log.Info(builder);
+						}
+						args.Result.Save(ResultFile);
 
-			FrequencyResponseResult result = args.Result;
-			if (result != null) {
-				for (int i = 0; i < result.ResponseCount; ++i) {
-					var builder = new StringBuilder();
-					builder.AppendFormat(_formatProvider, "{0}", result.GetFrequency(i));
-					for (int j = 0; j < result.Count; j++) {
-						builder.AppendFormat(_formatProvider, ",{0},{1}", result.GetFrequency(i),
-							result.Getresult(i)[j].Real, result.Getresult(i)[j].Imaginary);
+						_tcs.SetResult(null);
+					} else {
+						_tcs.SetException(new Exception("Measurement failed."));
 					}
-					//_log.Info(builder);
 				}
-				args.Result.Save(ResultFile);
-
-				_signal.Set();
-			}
-		}
+			});
+        }
 		#endregion Frequency Response measurement callbacks
 	}
 }

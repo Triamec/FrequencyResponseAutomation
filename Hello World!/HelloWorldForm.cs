@@ -22,6 +22,7 @@ using Triamec.TriaLink.Subscriptions;
 using Axis = Triamec.Tam.Rlid19.Axis;
 using Triamec.Diagnostics;
 using System.Threading.Tasks;
+using System.Linq.Expressions;
 
 namespace Triamec.Tam.Samples {
     /// <summary>
@@ -175,7 +176,7 @@ namespace Triamec.Tam.Samples {
             // If the axis is just moving, it is reprogrammed with this command.
             _axis.MoveRelative(Math.Sign(sign) * Distance, _velocityMaximum);
 
-        void Measure() {
+        async Task Measure() {
             // Does not contain any asserts, but ensures the principal Frequency Response acquirement mechanism is tested
             System.Diagnostics.Debug.WriteLine("Starting measure");
 
@@ -190,21 +191,18 @@ namespace Triamec.Tam.Samples {
             try {
                 FrequencyResponseAxis axis = SetupFrequencyResponseAxis();
 
-                var signal = new AutoResetEvent(initialState: false);
-
-                var logic = StartFrequencyResponse(signal, axis, culture);
+                var (logic, task) = StartFrequencyResponse(axis, culture);
+                var wait = new TimeSpan(0, 0, 3, 0, 0);
                 try {
-                    var wait = new TimeSpan(0, 0, 3, 0, 0);
-                    if (!signal.WaitOne(wait, false)) {
-                        Console.WriteLine(string.Format("The test duration exceeded {0} minutes", wait.TotalMinutes));
-                        return;
-                    }
-                } finally {
+                    await TimeoutAfter(task, wait);
+                } catch (TimeoutException) {
                     logic.GetFrequencyResponseResultCancel();
+                    Console.WriteLine(string.Format("The test duration exceeded {0} minutes", wait.TotalMinutes));
+                    return;
+                } finally {
                     logic.Dispose();
                     axis.Tidy();
                     string resultFile = _callback.ResultFile;
-
                 }
             } finally {
                 thread.CurrentCulture = backupCulture;
@@ -217,7 +215,7 @@ namespace Triamec.Tam.Samples {
             float backAndForthDistance = 120;
             float backAndForthVelocity = 30;
             TimeSpan moveTimeout = new TimeSpan(0, 0, 10);
-            while(!cancellationToken.IsCancellationRequested) {
+            while (!cancellationToken.IsCancellationRequested) {
                 await _axis.MoveRelative(backAndForthDistance / 2, backAndForthVelocity).WaitForSuccessAsync(moveTimeout);
                 await _axis.MoveRelative(-backAndForthDistance / 2, backAndForthVelocity).WaitForSuccessAsync(moveTimeout);
             }
@@ -307,14 +305,8 @@ namespace Triamec.Tam.Samples {
                 CancellationTokenSource cts = new CancellationTokenSource();
                 CancellationToken cancellationToken = cts.Token;
 
-                //await StartBackAndForthMove();
-                //Measure();
-
                 Task moveTask = StartBackAndForthMove(cancellationToken);
-                Task measureTask = Task.Run(() => Measure());
-
-                //Task moveTask = StartBackAndForthMove(cancellationToken);
-                //Task measureTask = Measure();
+                Task measureTask = Measure();
 
                 System.Diagnostics.Debug.WriteLine("Waiting for measureTask");
                 await measureTask;
@@ -341,14 +333,13 @@ namespace Triamec.Tam.Samples {
         /// <summary>
         /// Create the Frequency Response logic on another thread than the thread who will wait for completion
         /// </summary>
-        /// <param name="signal">The signal where completion will be signaled.</param>
         /// <param name="axis">The axis.</param>
         /// <param name="formatProvider">The format provider.</param>
         /// <param name="log">The log.</param>
         /// <returns>
         /// The created resource that must be managed by the caller.
         /// </returns>
-        IFrequencyResponseLogic StartFrequencyResponse(AutoResetEvent signal, IFrequencyResponseAxis axis, CultureInfo formatProvider) {
+        (IFrequencyResponseLogic logic, Task task) StartFrequencyResponse(IFrequencyResponseAxis axis, CultureInfo formatProvider) {
             IFrequencyResponseLogic logic = new FrequencyResponseLogic();
             var parameters = new FrequencyResponseParameters(axis) {
                 FrequencyRange = new NIRange(minimumFrequency, maximumFrequency),
@@ -360,8 +351,9 @@ namespace Triamec.Tam.Samples {
                 parameters.SetMeasuringPointMaximum(i, excitationLimits[i]);
             }
 
+            var tcs = new TaskCompletionSource<object>();
 
-            _callback = new FrequencyResponseLogicCallback(logic, signal, formatProvider);
+            _callback = new FrequencyResponseLogicCallback(tcs, logic, formatProvider);
             string desiredMethod = selectedMethod;
             var methods = FrequencyResponseConfig.Read()
                                    .MeasurementMethods
@@ -370,11 +362,34 @@ namespace Triamec.Tam.Samples {
             axis.MeasurementMethod = methods.Single(method => method.Name == desiredMethod);
             axis.SamplingTime = TimeSpan.FromTicks(TimeSpan.TicksPerSecond / measurementFrequency);
             logic.GetFrequencyResponseResultAsync(axis, parameters);
-            return logic;
+            return (logic, tcs.Task);
         }
 
         #endregion FrequencyResponseLogic helpers
 
+        /// <summary>
+        /// Creates a new <see cref="Task"/> that completes if this <see cref="Task"/> completes or a specified duration
+        /// elapses.
+        /// </summary>
+        /// <param name="task">The task to wait for.</param>
+        /// <param name="timeout">The duration to maximally wait for <paramref name="task"/>s completion.</param>
+        /// <exception cref="TimeoutException">A timeout occurred.</exception>
+        // TODO unit testing
+        static async Task TimeoutAfter(Task task, TimeSpan timeout) {
+            using (var timeoutCancellationTokenSource = new CancellationTokenSource()) {
+                var completedTask = await Task.WhenAny(task, Task.Delay(timeout, timeoutCancellationTokenSource.Token))
+                                              .ConfigureAwait(continueOnCapturedContext: false);
+
+                if (completedTask == task) {
+                    timeoutCancellationTokenSource.Cancel();
+
+                    // propagate exception rather than AggregateException, if calling task.Result.
+                    await task.ConfigureAwait(continueOnCapturedContext: false);
+                } else {
+                    throw new TimeoutException();
+                }
+            }
+        }
 
         #endregion Button handler methods
 
