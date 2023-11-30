@@ -39,9 +39,9 @@ namespace Triamec.Tam.Samples {
 
         #region Frequency Response measurement parameters
         int measurementFrequency = 100000; // [Hz]
-        int minimumFrequency = 50; // [Hz]
+        int minimumFrequency = 300; // [Hz]
         int maximumFrequency = 400; // [Hz]
-        int numberOfSamples = 10; // [-]
+        int numberOfSamples = 3; // [-]
         FrequencySpacing frequencySpacing = FrequencySpacing.Optimized;
         string selectedMethod = "Closed Loop";
         double[] excitationLimits = new double[] { 13.8, 0.5, 0.5 };
@@ -175,8 +175,10 @@ namespace Triamec.Tam.Samples {
             // If the axis is just moving, it is reprogrammed with this command.
             _axis.MoveRelative(Math.Sign(sign) * Distance, _velocityMaximum);
 
-        async Task Measure() {
+        void Measure() {
             // Does not contain any asserts, but ensures the principal Frequency Response acquirement mechanism is tested
+            System.Diagnostics.Debug.WriteLine("Starting measure");
+
 
             #region Setup special culture
             var culture = new CultureInfo(CultureInfo.InvariantCulture.LCID, false);
@@ -214,8 +216,10 @@ namespace Triamec.Tam.Samples {
         }
 
         async Task StartBackAndForthMove(CancellationToken cancellationToken) {
-            float backAndForthDistance = 60;
-            float backAndForthVelocity = 20;
+            System.Diagnostics.Debug.WriteLine("Starting back and forth move");
+
+            float backAndForthDistance = 120;
+            float backAndForthVelocity = 30;
             TimeSpan moveTimeout = new TimeSpan(0, 0, 10);
             while(!cancellationToken.IsCancellationRequested) {
                 await _axis.MoveRelative(backAndForthDistance / 2, backAndForthVelocity).WaitForSuccessAsync(moveTimeout);
@@ -301,6 +305,8 @@ namespace Triamec.Tam.Samples {
         async void OnMeasureButtonClick(object sender, EventArgs e) {
             try {
                 _measureButton.Enabled = false;
+                System.Diagnostics.Debug.WriteLine("Measurement button clicked");
+
 
                 CancellationTokenSource cts = new CancellationTokenSource();
                 CancellationToken cancellationToken = cts.Token;
@@ -308,12 +314,15 @@ namespace Triamec.Tam.Samples {
                 //await StartBackAndForthMove();
                 //Measure();
 
-                Task moveTask = Task.Run(() => StartBackAndForthMove(cancellationToken));
+                Task moveTask = StartBackAndForthMove(cancellationToken);
                 Task measureTask = Task.Run(() => Measure());
 
-                //// Wait for both tasks to complete
+                //Task moveTask = StartBackAndForthMove(cancellationToken);
+                //Task measureTask = Measure();
+
+                System.Diagnostics.Debug.WriteLine("Waiting for measureTask");
                 await measureTask;
-                cts.Cancel();
+                //cts.Cancel();
 
 
             } catch (TamException ex) {
