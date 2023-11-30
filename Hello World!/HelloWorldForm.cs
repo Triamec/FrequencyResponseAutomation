@@ -205,9 +205,7 @@ namespace Triamec.Tam.Samples {
                     logic.GetFrequencyResponseResultCancel();
                     logic.Dispose();
                     axis.Tidy();
-                    string signalsFile = _callback.SignalsFile;
                     string resultFile = _callback.ResultFile;
-                    _callback.Dispose();
 
                 }
             } finally {
