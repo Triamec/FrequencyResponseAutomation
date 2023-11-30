@@ -322,7 +322,7 @@ namespace Triamec.Tam.Samples {
 
                 System.Diagnostics.Debug.WriteLine("Waiting for measureTask");
                 await measureTask;
-                //cts.Cancel();
+                cts.Cancel();
 
 
             } catch (TamException ex) {
