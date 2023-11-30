@@ -175,7 +175,7 @@ namespace Triamec.Tam.Samples {
             // If the axis is just moving, it is reprogrammed with this command.
             _axis.MoveRelative(Math.Sign(sign) * Distance, _velocityMaximum);
 
-        void Measure() {
+        async Task Measure() {
             // Does not contain any asserts, but ensures the principal Frequency Response acquirement mechanism is tested
 
             #region Setup special culture
@@ -213,11 +213,11 @@ namespace Triamec.Tam.Samples {
             }
         }
 
-        async Task StartBackAndForthMove() {
-            float backAndForthDistance = 20;
-            float backAndForthVelocity = 2;
+        async Task StartBackAndForthMove(CancellationToken cancellationToken) {
+            float backAndForthDistance = 60;
+            float backAndForthVelocity = 20;
             TimeSpan moveTimeout = new TimeSpan(0, 0, 10);
-            while(true) {
+            while(!cancellationToken.IsCancellationRequested) {
                 await _axis.MoveRelative(backAndForthDistance / 2, backAndForthVelocity).WaitForSuccessAsync(moveTimeout);
                 await _axis.MoveRelative(-backAndForthDistance / 2, backAndForthVelocity).WaitForSuccessAsync(moveTimeout);
             }
@@ -298,17 +298,23 @@ namespace Triamec.Tam.Samples {
             }
         }
 
-        void OnMeasureButtonClick(object sender, EventArgs e) {
+        async void OnMeasureButtonClick(object sender, EventArgs e) {
             try {
                 _measureButton.Enabled = false;
+
+                CancellationTokenSource cts = new CancellationTokenSource();
+                CancellationToken cancellationToken = cts.Token;
+
                 //await StartBackAndForthMove();
                 //Measure();
 
-                Task moveTask = Task.Run(() => StartBackAndForthMove());
+                Task moveTask = Task.Run(() => StartBackAndForthMove(cancellationToken));
                 Task measureTask = Task.Run(() => Measure());
 
                 //// Wait for both tasks to complete
-                Task.WaitAll(measureTask);
+                await measureTask;
+                cts.Cancel();
+
 
             } catch (TamException ex) {
                 MessageBox.Show(ex.Message, Resources.MoveErrorCaption, MessageBoxButtons.OK,
