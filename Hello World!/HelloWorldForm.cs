@@ -192,8 +192,7 @@ namespace Triamec.Tam.Samples {
 
                 var signal = new AutoResetEvent(initialState: false);
 
-                Func<AutoResetEvent, IFrequencyResponseAxis, CultureInfo, IFrequencyResponseLogic> worker = StartFrequencyResponse;
-                IAsyncResult asyncResult = worker.BeginInvoke(signal, axis, culture, null, null);
+                var logic = StartFrequencyResponse(signal, axis, culture);
                 try {
                     var wait = new TimeSpan(0, 0, 3, 0, 0);
                     if (!signal.WaitOne(wait, false)) {
@@ -201,7 +200,6 @@ namespace Triamec.Tam.Samples {
                         return;
                     }
                 } finally {
-                    IFrequencyResponseLogic logic = worker.EndInvoke(asyncResult);
                     logic.GetFrequencyResponseResultCancel();
                     logic.Dispose();
                     axis.Tidy();
