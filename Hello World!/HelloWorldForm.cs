@@ -205,13 +205,13 @@ namespace Triamec.Tam.Samples {
         async Task StartBackAndForthMove(CancellationToken cancellationToken) {
             System.Diagnostics.Debug.WriteLine("Starting back and forth move");
             var register = (Axis)_axis.Register;
-            var currentReferencePosition = register.Signals.PathPlanner.Position;
+            float currentReferencePosition = register.Signals.PathPlanner.PositionFloat.Read();
             float backAndForthDistance = 120;
             float backAndForthVelocity = 30;
             TimeSpan moveTimeout = new TimeSpan(0, 0, 10);
             while (!cancellationToken.IsCancellationRequested) {
-                await _axis.MoveRelative(backAndForthDistance / 2, backAndForthVelocity).WaitForSuccessAsync(moveTimeout);
-                await _axis.MoveRelative(-backAndForthDistance / 2, backAndForthVelocity).WaitForSuccessAsync(moveTimeout);
+                await _axis.MoveAbsolute(currentReferencePosition + backAndForthDistance / 2, backAndForthVelocity).WaitForSuccessAsync(moveTimeout);
+                await _axis.MoveAbsolute(currentReferencePosition - backAndForthDistance / 2, backAndForthVelocity).WaitForSuccessAsync(moveTimeout);
             }
         }
 
