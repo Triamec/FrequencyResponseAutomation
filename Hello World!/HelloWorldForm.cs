@@ -211,7 +211,7 @@ namespace Triamec.Tam.Samples {
             TimeSpan moveTimeout = new TimeSpan(0, 0, 10);
             while (!cancellationToken.IsCancellationRequested) {
                 await _axis.MoveAbsolute(currentReferencePosition + backAndForthDistance / 2, backAndForthVelocity).WaitForSuccessAsync(moveTimeout);
-                await _axis.MoveAbsolute(currentReferencePosition - backAndForthDistance / 2, backAndForthVelocity).WaitForSuccessAsync(moveTimeout);
+                await _axis.MoveAbsolute(currentReferencePosition - backAndForthDistance / 2, -backAndForthVelocity).WaitForSuccessAsync(moveTimeout);
             }
         }
 
@@ -293,15 +293,14 @@ namespace Triamec.Tam.Samples {
         async void OnMeasureButtonClick(object sender, EventArgs e) {
             try {
                 _measureButton.Enabled = false;
-                System.Diagnostics.Debug.WriteLine("Measurement button clicked");
 
                 CancellationTokenSource cts = new CancellationTokenSource();
                 CancellationToken cancellationToken = cts.Token;
 
+                await _axis.MoveAbsolute(42).WaitForSuccessAsync(TimeSpan.FromSeconds(10)); 
                 Task moveTask = StartBackAndForthMove(cancellationToken);
                 Task measureTask = Measure();
 
-                System.Diagnostics.Debug.WriteLine("Waiting for measureTask");
                 await measureTask;
                 cts.Cancel();
 
