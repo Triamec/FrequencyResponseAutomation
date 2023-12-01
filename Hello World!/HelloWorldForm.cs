@@ -74,9 +74,6 @@ namespace Triamec.Tam.Samples {
         TamTopology _topology;
         TamAxis _axis;
 
-        float _velocityMaximum;
-        string _unit;
-
         FrequencyResponseLogicCallback _callback;
 
         /// <summary>
@@ -107,7 +104,6 @@ namespace Triamec.Tam.Samples {
             // Boot the Tria-Link so that it learns about connected stations.
             system.Identify();
 
-
             // Find the axis with the configured name in the Tria-Link.
             // The AsDepthFirstLeaves extension method performs a tree search an returns all instances of type TamAxis.
             // "Leaves" means that the search doesn't continue within TamAxis nodes.
@@ -122,9 +118,6 @@ namespace Triamec.Tam.Samples {
             // Get the register layout of the axis
             // and cast it to the RLID-specific register layout.
             var register = (Axis)_axis.Register;
-
-            // Cache the position unit.
-            _unit = register.Parameters.PositionController.PositionUnit.Read().ToString();
 
             _axis.Drive.AddStateObserver(this);
 
@@ -174,7 +167,7 @@ namespace Triamec.Tam.Samples {
 
             // Move a distance with dedicated velocity.
             // If the axis is just moving, it is reprogrammed with this command.
-            _axis.MoveRelative(Math.Sign(sign) * Distance, _velocityMaximum);
+            _axis.MoveRelative(Math.Sign(sign) * Distance);
 
         async Task Measure() {
             // Does not contain any asserts, but ensures the principal Frequency Response acquirement mechanism is tested
@@ -211,7 +204,8 @@ namespace Triamec.Tam.Samples {
 
         async Task StartBackAndForthMove(CancellationToken cancellationToken) {
             System.Diagnostics.Debug.WriteLine("Starting back and forth move");
-
+            var register = (Axis)_axis.Register;
+            var currentReferencePosition = register.Signals.PathPlanner.Position;
             float backAndForthDistance = 120;
             float backAndForthVelocity = 30;
             TimeSpan moveTimeout = new TimeSpan(0, 0, 10);
@@ -301,7 +295,6 @@ namespace Triamec.Tam.Samples {
                 _measureButton.Enabled = false;
                 System.Diagnostics.Debug.WriteLine("Measurement button clicked");
 
-
                 CancellationTokenSource cts = new CancellationTokenSource();
                 CancellationToken cancellationToken = cts.Token;
 
@@ -311,7 +304,6 @@ namespace Triamec.Tam.Samples {
                 System.Diagnostics.Debug.WriteLine("Waiting for measureTask");
                 await measureTask;
                 cts.Cancel();
-
 
             } catch (TamException ex) {
                 MessageBox.Show(ex.Message, Resources.MoveErrorCaption, MessageBoxButtons.OK,

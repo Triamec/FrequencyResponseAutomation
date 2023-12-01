@@ -55,7 +55,7 @@ namespace Triamec.Tam.FrequencyResponse.NUnit {
             if (!Directory.Exists(testDir)) {
                 Directory.CreateDirectory(testDir);
             }
-            ResultFile = Path.Combine(testDir, "result.csv");
+            ResultFile = Path.Combine(testDir, $"result_{DateTime.Now:yyyyMMdd_HHmmss}.csv");
         }
         #endregion Constructor / Disposing
 
