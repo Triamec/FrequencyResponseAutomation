@@ -12,7 +12,7 @@ namespace Triamec.Tam.Samples {
         static void Main() {
             EnableVisualStyles();
             SetCompatibleTextRenderingDefault(false);
-            Run(new HelloWorldForm());
+            Run(new FrequencyResponseAutomationForm());
         }
     }
 }

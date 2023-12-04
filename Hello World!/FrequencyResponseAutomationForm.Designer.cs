@@ -1,5 +1,5 @@
 ﻿namespace Triamec.Tam.Samples {
-    partial class HelloWorldForm {
+    partial class FrequencyResponseAutomationForm {
         /// <summary>
         /// Required designer variable.
         /// </summary>
@@ -25,7 +25,7 @@
         private void InitializeComponent() {
             this.components = new System.ComponentModel.Container();
             System.Windows.Forms.Button enableButton;
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(HelloWorldForm));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FrequencyResponseAutomationForm));
             System.Windows.Forms.Button disableButton;
             System.Windows.Forms.MenuStrip menuStrip;
             System.Windows.Forms.ToolStripMenuItem fileToolStripMenuItem;
