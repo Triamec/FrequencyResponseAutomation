@@ -25,8 +25,6 @@ namespace Triamec.Tam.Samples {
         /// Initializes a new instance of the <see cref="FrequencyResponseMeasurementCallback"/> class.
         /// </summary>
         /// <param name="measurement">The Frequency Response measurement instance.</param>
-        /// <param name="testFixture">A Reference to test data.</param>
-        /// <param name="log">The log.</param>
         /// <exception cref="ArgumentNullException">One of the arguments is <see langword="null"/>.</exception>
         public FrequencyResponseMeasurementCallback(TaskCompletionSource<object> tcs, FrequencyResponseMeasurement measurement) {
 
@@ -35,8 +33,6 @@ namespace Triamec.Tam.Samples {
             measurement.MeasureFrequencyResponseCompleted += OnGetFrequencyResponseResultCompletedEvent;
             _tcs = tcs;
 
-            //if (testFixture == null) throw new ArgumentNullException(nameof(testFixture));
-            //_formatProvider = formatProvider;
             string testDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Frequency Response");
             if (!Directory.Exists(testDir)) {
                 Directory.CreateDirectory(testDir);

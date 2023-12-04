@@ -34,6 +34,7 @@ namespace Triamec.Tam.Samples {
         #endregion Constructor
 
         #region Frequency Response measurement parameters
+
         int measurementFrequency = 100000; // [Hz]
         int minimumFrequency = 300; // [Hz]
         int maximumFrequency = 400; // [Hz]
@@ -41,6 +42,11 @@ namespace Triamec.Tam.Samples {
         FrequencySpacing frequencySpacing = FrequencySpacing.Optimized;
         string selectedMethod = "Closed Loop";
         double[] excitationLimits = new double[] { 13.8, 0.5, 0.5 };
+        double[] measurementPositions = new double[] { 30.0, 90.0, 120.0 };
+        bool doBackAndForthMove = true;
+        float backAndForthDistance = 30;
+        float backAndForthVelocity = 10;
+
         #endregion Frequency Response measurement parameters
 
 
@@ -115,19 +121,6 @@ namespace Triamec.Tam.Samples {
             _timer.Start();
         }
 
-        /// <summary>
-        /// Creates simulated Tria-Link adapters from a specified configuration.
-        /// </summary>
-        /// <param name="configuration">The configuration.</param>
-        /// <returns>The newly created simulated Tria-Link adapters.</returns>
-        static IEnumerable<IGrouping<Uri, ITriaLinkAdapter>> CreateSimulatedTriaLinkAdapters(
-            TamTopologyConfiguration configuration) =>
-
-            // This call must be in this extra method such that the Tam.Simulation library is only loaded
-            // when simulating. This happens when this method is jitted because the SimulationFactory is the first
-            // symbol during runtime originating from the Tam.Simulation library.
-            SimulationFactory.FromConfiguration(configuration, null);
-
         /// <exception cref="TamException">Enabling failed.</exception>
         void EnableDrive() {
 
@@ -180,16 +173,16 @@ namespace Triamec.Tam.Samples {
 
         }
 
-        async Task StartBackAndForthMove(CancellationToken cancellationToken) {
+        async Task StartBackAndForthMove(CancellationToken cancellationToken, float backAndForthDistance, float backAndForthVelocity) {
             System.Diagnostics.Debug.WriteLine("Starting back and forth move");
             var register = (Axis)_axis.Register;
             float currentReferencePosition = register.Signals.PathPlanner.PositionFloat.Read();
-            float backAndForthDistance = 120;
-            float backAndForthVelocity = 30;
             TimeSpan moveTimeout = new TimeSpan(0, 0, 10);
             while (!cancellationToken.IsCancellationRequested) {
-                await _axis.MoveAbsolute(currentReferencePosition + backAndForthDistance / 2, backAndForthVelocity).WaitForSuccessAsync(moveTimeout);
-                await _axis.MoveAbsolute(currentReferencePosition - backAndForthDistance / 2, -backAndForthVelocity).WaitForSuccessAsync(moveTimeout);
+                await _axis.MoveAbsolute(currentReferencePosition + backAndForthDistance / 2, backAndForthVelocity, PathPlannerDirection.Positive).WaitForSuccessAsync(moveTimeout);
+                if (!cancellationToken.IsCancellationRequested) {
+                    await _axis.MoveAbsolute(currentReferencePosition - backAndForthDistance / 2, -backAndForthVelocity, PathPlannerDirection.Negative).WaitForSuccessAsync(moveTimeout);
+                }
             }
         }
 
@@ -272,15 +265,23 @@ namespace Triamec.Tam.Samples {
             try {
                 _measureButton.Enabled = false;
 
-                CancellationTokenSource cts = new CancellationTokenSource();
-                CancellationToken cancellationToken = cts.Token;
+                for (int i = 0; i < measurementPositions.Length; i++) {
+                    CancellationTokenSource cts = new CancellationTokenSource();
+                    CancellationToken cancellationToken = cts.Token;
 
-                await _axis.MoveAbsolute(42).WaitForSuccessAsync(TimeSpan.FromSeconds(10)); 
-                Task moveTask = StartBackAndForthMove(cancellationToken);
-                Task measureTask = Measure();
+                    await _axis.MoveAbsolute(measurementPositions[i]).WaitForSuccessAsync(TimeSpan.FromSeconds(10));
 
-                await measureTask;
-                cts.Cancel();
+                    if (doBackAndForthMove) {
+                        Task moveTask = StartBackAndForthMove(cancellationToken, backAndForthDistance, backAndForthVelocity);
+                    }
+                    Task measureTask = Measure();
+
+                    await measureTask;
+                    cts.Cancel();
+                    await _axis.Stop(false).WaitForSuccessAsync(TimeSpan.FromSeconds(10));             
+                }
+
+                
 
             } catch (TamException ex) {
                 MessageBox.Show(ex.Message, Resources.MoveErrorCaption, MessageBoxButtons.OK,
@@ -306,7 +307,6 @@ namespace Triamec.Tam.Samples {
         /// Create the Frequency Response logic on another thread than the thread who will wait for completion
         /// </summary>
         /// <param name="system">The axis.</param>
-        /// <param name="formatProvider">The format provider.</param>
         /// <param name="log">The log.</param>
         /// <returns>
         /// The created resource that must be managed by the caller.
