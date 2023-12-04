@@ -44,12 +44,7 @@ namespace Triamec.Tam.Samples {
         #endregion Frequency Response measurement parameters
 
 
-        #region Hello world code
-        /// <summary>
-        /// The configuration file for simulated mode.
-        /// </summary>
-        //const string ConfigurationPath = "HelloWorld.TAMcfg";
-
+        #region Frequency Response Automation code
         /// <summary>
         /// The name of the axis this demo works with.
         /// </summary>
@@ -210,7 +205,7 @@ namespace Triamec.Tam.Samples {
             }
         }
 
-        #endregion Hello world code
+        #endregion Frequency Response Automation code
 
         #region GUI handler methods
         #region Form handler methods

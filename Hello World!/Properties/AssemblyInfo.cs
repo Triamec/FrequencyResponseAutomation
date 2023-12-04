@@ -7,11 +7,11 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("Frequency Response Automation")]
-[assembly: AssemblyDescription("Hello world application with the TAM Software")]
+[assembly: AssemblyDescription("Frequency Response Automation application with the TAM Software")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Triamec Motion AG")]
 [assembly: AssemblyProduct("TAM Software Samples")]
-[assembly: AssemblyCopyright("Copyright © 2007 Triamec Motion AG")]
+[assembly: AssemblyCopyright("Copyright © 2023 Triamec Motion AG")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
