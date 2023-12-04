@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.33424.131
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Frequency Response Automation", "Hello World!\Frequency Response Automation.csproj", "{8129DE51-8548-4BB3-95C8-29A4CE0BB147}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Frequency Response Automation", "Frequency Response Automation\Frequency Response Automation.csproj", "{8129DE51-8548-4BB3-95C8-29A4CE0BB147}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{D81E68C9-C782-49BA-8315-078B7BF730B7}"
 	ProjectSection(SolutionItems) = preProject
