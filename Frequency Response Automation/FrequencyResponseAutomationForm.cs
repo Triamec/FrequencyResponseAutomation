@@ -1,16 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
 using Triamec.FrequencyResponseAnalysis;
 using Triamec.FrequencyResponseAnalysis.Configuration;
-using Triamec.Tam.Configuration;
 using Triamec.Tam.FrequencyResponseAnalysis;
 using Triamec.Tam.Samples.Properties;
 using Triamec.TriaLink;
-using Triamec.TriaLink.Adapter;
 
 
 // Rlid19 represents the register layout of drives of the current generation. A previous generation drive has layout 4.
@@ -43,6 +39,7 @@ namespace Triamec.Tam.Samples {
         string selectedMethod = "Closed Loop";
         double[] excitationLimits = new double[] { 13.8, 0.5, 0.5 };
         double[] measurementPositions = new double[] { 30.0, 90.0, 120.0 };
+        float moveToPositionVelocity = 60;
         bool doBackAndForthMove = true;
         float backAndForthDistance = 30;
         float backAndForthVelocity = 10;
@@ -273,11 +270,15 @@ namespace Triamec.Tam.Samples {
                     CancellationTokenSource cts = new CancellationTokenSource();
                     CancellationToken cancellationToken = cts.Token;
 
-                    await _axis.MoveAbsolute(measurementPositions[i]).WaitForSuccessAsync(TimeSpan.FromSeconds(10));
+                    await _axis.MoveAbsolute(measurementPositions[i], moveToPositionVelocity).WaitForSuccessAsync(TimeSpan.FromSeconds(10));
 
                     Task moveTask;
                     if (doBackAndForthMove) {
-                        moveTask = StartBackAndForthMove(cancellationToken, backAndForthDistance, backAndForthVelocity);
+                        if (selectedMethod == "Closed Loop") {
+                            moveTask = StartBackAndForthMove(cancellationToken, backAndForthDistance, backAndForthVelocity);
+                        } else {
+                            throw new Exception("Back and Forth move is only possible in Closed Loop");
+                        }
                     } else {
                         moveTask = null;
                     }
@@ -285,7 +286,6 @@ namespace Triamec.Tam.Samples {
 
                     await measureTask;
                     cts.Cancel();
-                    //await Task.Delay(TimeSpan.FromSeconds(5));
                     await _axis.Stop(false).WaitForSuccessAsync(TimeSpan.FromSeconds(10));
                     if (moveTask != null) {
                         await moveTask;
