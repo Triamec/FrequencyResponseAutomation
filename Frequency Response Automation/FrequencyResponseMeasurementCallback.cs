@@ -84,8 +84,6 @@ namespace Triamec.Tam.Samples {
         /// </param>
         void OnGetFrequencyResponseResultCompletedEvent(object sender, MeasureFrequencyResponseCompletedEventArgs args) {
             Task.Run(() => {
-                // use custom culture to save the file
-                Thread.CurrentThread.CurrentCulture = _formatProvider;
                 if (args.Canceled) {
                     _tcs.TrySetCanceled();
                 } else {
@@ -97,15 +95,7 @@ namespace Triamec.Tam.Samples {
 
                     FrequencyResponse result = args.Result;
                     if (result != null) {
-                        for (int i = 0; i < result.ResponseCount; ++i) {
-                            var builder = new StringBuilder();
-                            builder.AppendFormat(_formatProvider, "{0}", result.GetFrequency(i));
-                            for (int j = 0; j < result.Count; j++) {
-                                builder.AppendFormat(_formatProvider, ",{0},{1}", result.GetFrequency(i),
-                                    result.Getresult(i)[j].Real, result.Getresult(i)[j].Imaginary);
-                            }
-                            //_log.Info(builder);
-                        }
+
                         args.Result.Save(ResultFile);
 
                         _tcs.SetResult(null);
