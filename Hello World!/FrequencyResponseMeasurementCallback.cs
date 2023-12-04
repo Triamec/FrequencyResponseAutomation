@@ -6,17 +6,15 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Threading;
-using Triamec.FrequencyResponse;
-using Triamec.Diagnostics;
-using Triamec.Tam.Samples;
+using Triamec.FrequencyResponseAnalysis;
 using System.Diagnostics;
 using System.Threading.Tasks;
 
-namespace Triamec.Tam.FrequencyResponse.NUnit {
+namespace Triamec.Tam.Samples {
     /// <summary>
     /// Handler of events from a FrequencyResponse measurement instance.
     /// </summary>
-    internal class FrequencyResponseLogicCallback {
+    internal class FrequencyResponseMeasurementCallback {
 
         #region Read-only fields
         readonly TaskCompletionSource<object> _tcs;
@@ -35,18 +33,18 @@ namespace Triamec.Tam.FrequencyResponse.NUnit {
 
         #region Constructor / Disposing
         /// <summary>
-        /// Initializes a new instance of the <see cref="FrequencyResponseLogicCallback"/> class.
+        /// Initializes a new instance of the <see cref="FrequencyResponseMeasurementCallback"/> class.
         /// </summary>
-        /// <param name="logic">The Frequency Response measurement instance.</param>
+        /// <param name="measurement">The Frequency Response measurement instance.</param>
         /// <param name="testFixture">A Reference to test data.</param>
         /// <param name="formatProvider">The format provider.</param>
         /// <param name="log">The log.</param>
         /// <exception cref="ArgumentNullException">One of the arguments is <see langword="null"/>.</exception>
-        public FrequencyResponseLogicCallback(TaskCompletionSource<object> tcs, IFrequencyResponseLogic logic, CultureInfo formatProvider) {
+        public FrequencyResponseMeasurementCallback(TaskCompletionSource<object> tcs, FrequencyResponseMeasurement measurement, CultureInfo formatProvider) {
 
-            if (logic == null) throw new ArgumentNullException(nameof(logic));
-            logic.GetFrequencyResponseResultProgressChanged += OnGetFrequencyResponseResultProgressChanged;
-            logic.GetFrequencyResponseResultCompleted += OnGetFrequencyResponseResultCompletedEvent;
+            if (measurement == null) throw new ArgumentNullException(nameof(measurement));
+            measurement.MeasureFrequencyResponseProgressChanged += OnGetFrequencyResponseResultProgressChanged;
+            measurement.MeasureFrequencyResponseCompleted += OnGetFrequencyResponseResultCompletedEvent;
             _tcs = tcs;
 
             //if (testFixture == null) throw new ArgumentNullException(nameof(testFixture));
@@ -68,7 +66,7 @@ namespace Triamec.Tam.FrequencyResponse.NUnit {
         #endregion Properties
 
         #region Frequency Response measurement callbacks
-        void OnGetFrequencyResponseResultProgressChanged(object sender, AcquisitionAvailableEventArgs e) {
+        void OnGetFrequencyResponseResultProgressChanged(object sender, MeasureFrequencyResponseProgressChangedEventArgs e) {
             if (e.Error == null) {
                 Debug.WriteLine($"Measured at {e.Parameters.Frequency}Hz.");
             } else {
@@ -82,16 +80,22 @@ namespace Triamec.Tam.FrequencyResponse.NUnit {
         /// Called when the Frequency Response measurement has completed.
         /// </summary>
         /// <param name="sender">The sender.</param>
-        /// <param name="args">The <see cref="FrequencyResponseResultCompletedEventArgs"/> instance containing the event data.
+        /// <param name="args">The instance containing the event data.
         /// </param>
-        void OnGetFrequencyResponseResultCompletedEvent(object sender, FrequencyResponseResultCompletedEventArgs args) {
+        void OnGetFrequencyResponseResultCompletedEvent(object sender, MeasureFrequencyResponseCompletedEventArgs args) {
             Task.Run(() => {
                 // use custom culture to save the file
                 Thread.CurrentThread.CurrentCulture = _formatProvider;
                 if (args.Canceled) {
                     _tcs.TrySetCanceled();
                 } else {
-                    FrequencyResponseResult result = args.Result;
+
+                    // measurement may fail, but we can still save the partial result
+                    if (args.Failure != null) {
+                        Debug.WriteLine($"Measurement failed: {args.Failure.FullMessage()}");
+                    }
+
+                    FrequencyResponse result = args.Result;
                     if (result != null) {
                         for (int i = 0; i < result.ResponseCount; ++i) {
                             var builder = new StringBuilder();

@@ -1,21 +1,16 @@
 ﻿using System;
-using NIRange = NationalInstruments.UI.Range;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 using System.Windows.Forms;
-using Triamec.FrequencyResponse;
-using Triamec.FrequencyResponse.Configuration;
-using Triamec.Tam.FrequencyResponse.NUnit;
+using Triamec.FrequencyResponseAnalysis;
+using Triamec.FrequencyResponseAnalysis.Configuration;
 using Triamec.Tam.Configuration;
-using Triamec.Tam.FrequencyResponse;
+using Triamec.Tam.FrequencyResponseAnalysis;
 using Triamec.Tam.Samples.Properties;
-using Triamec.Tam.Subscriptions;
 using Triamec.TriaLink;
 using Triamec.TriaLink.Adapter;
-using Triamec.TriaLink.Subscriptions;
 
 
 // Rlid19 represents the register layout of drives of the current generation. A previous generation drive has layout 4.
@@ -74,7 +69,7 @@ namespace Triamec.Tam.Samples {
         TamTopology _topology;
         TamAxis _axis;
 
-        FrequencyResponseLogicCallback _callback;
+        FrequencyResponseMeasurementCallback _callback;
 
         /// <summary>
         /// Prepares the TAM system.
@@ -182,19 +177,19 @@ namespace Triamec.Tam.Samples {
             #endregion Setup special culture
 
             try {
-                FrequencyResponseAxis axis = SetupFrequencyResponseAxis();
+                var controlSystem = SetupControlSystem();
 
-                var (logic, task) = StartFrequencyResponse(axis, culture);
+                var (measurement, task) = StartFrequencyResponse(controlSystem, culture);
                 var wait = new TimeSpan(0, 0, 3, 0, 0);
                 try {
                     await TimeoutAfter(task, wait);
                 } catch (TimeoutException) {
-                    logic.GetFrequencyResponseResultCancel();
+                    measurement.MeasureFrequencyResponseCancel();
                     Console.WriteLine(string.Format("The test duration exceeded {0} minutes", wait.TotalMinutes));
                     return;
                 } finally {
-                    logic.Dispose();
-                    axis.Tidy();
+                    measurement.Dispose();
+                    controlSystem.Tidy();
                     string resultFile = _callback.ResultFile;
                 }
             } finally {
@@ -312,28 +307,32 @@ namespace Triamec.Tam.Samples {
             }
         }
 
-        FrequencyResponseAxis SetupFrequencyResponseAxis() =>
+        IControlSystem SetupControlSystem() {
+
+            var result = _axis.AsControlSystem();
 
             // open loop
-            new FrequencyResponseAxis(_axis) {
-                MeasurementMethod = FrequencyResponseConfig.Read().MeasurementMethods[0]
-            };
+            result.MeasurementMethod = FrequencyResponseConfig.Read().MeasurementMethods[0];
+            
+            return result;
+        }
         #endregion SetupFrequencyResponseAxis
 
         #region FrequencyResponseLogic helpers
         /// <summary>
         /// Create the Frequency Response logic on another thread than the thread who will wait for completion
         /// </summary>
-        /// <param name="axis">The axis.</param>
+        /// <param name="system">The axis.</param>
         /// <param name="formatProvider">The format provider.</param>
         /// <param name="log">The log.</param>
         /// <returns>
         /// The created resource that must be managed by the caller.
         /// </returns>
-        (IFrequencyResponseLogic logic, Task task) StartFrequencyResponse(IFrequencyResponseAxis axis, CultureInfo formatProvider) {
-            IFrequencyResponseLogic logic = new FrequencyResponseLogic();
-            var parameters = new FrequencyResponseParameters(axis) {
-                FrequencyRange = new NIRange(minimumFrequency, maximumFrequency),
+        (FrequencyResponseMeasurement measurement, Task task) StartFrequencyResponse(IControlSystem system, CultureInfo formatProvider) {
+            var measurement = new FrequencyResponseMeasurement();
+            var parameters = new FrequencyResponseMeasurementParameters(system) {
+                FrequencyRangeMinimum = minimumFrequency,
+                FrequencyRangeMaximum = maximumFrequency,
                 FrequencySteps = numberOfSamples,
                 Spacing = frequencySpacing,
                 SettlingTime = TimeSpan.FromSeconds(0.2),
@@ -344,16 +343,16 @@ namespace Triamec.Tam.Samples {
 
             var tcs = new TaskCompletionSource<object>();
 
-            _callback = new FrequencyResponseLogicCallback(tcs, logic, formatProvider);
+            _callback = new FrequencyResponseMeasurementCallback(tcs, measurement, formatProvider);
             string desiredMethod = selectedMethod;
             var methods = FrequencyResponseConfig.Read()
                                    .MeasurementMethods
-                                   .Where(axis.SupportsMethod)
+                                   .Where(system.SupportsMethod)
                                    .ToArray();
-            axis.MeasurementMethod = methods.Single(method => method.Name == desiredMethod);
-            axis.SamplingTime = TimeSpan.FromTicks(TimeSpan.TicksPerSecond / measurementFrequency);
-            logic.GetFrequencyResponseResultAsync(axis, parameters);
-            return (logic, tcs.Task);
+            system.MeasurementMethod = methods.Single(method => method.Name == desiredMethod);
+            system.SamplingTime = TimeSpan.FromTicks(TimeSpan.TicksPerSecond / measurementFrequency);
+            measurement.MeasureFrequencyResponseAsync(system, parameters);
+            return (measurement, tcs.Task);
         }
 
         #endregion FrequencyResponseLogic helpers

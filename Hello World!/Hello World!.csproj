@@ -24,12 +24,7 @@
       <Version>7.19.4-beta.1</Version>
     </PackageReference>
     <PackageReference Include="Triamec.Tam.UI">
-      <Version>7.21.0-beta.2</Version>
+      <Version>8.0.0-beta.1</Version>
     </PackageReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Reference Include="NationalInstruments.UI">
-      <HintPath>$(SystemRoot)\Microsoft.NET\assembly\GAC_MSIL\NationalInstruments.UI\v4.0_15.0.45.49153__4febd62461bf11a4\NationalInstruments.UI.dll</HintPath>
-    </Reference>
   </ItemGroup>
 </Project>
