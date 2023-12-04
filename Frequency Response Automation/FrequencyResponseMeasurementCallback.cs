@@ -18,17 +18,6 @@ namespace Triamec.Tam.Samples {
 
         #region Read-only fields
         readonly TaskCompletionSource<object> _tcs;
-
-        /// <summary>
-        /// The format provider to use.
-        /// </summary>
-        readonly CultureInfo _formatProvider;
-
-        /// <summary>
-        /// The log to log to.
-        /// </summary>
-        //readonly ILog _log;
-
         #endregion Read-only fields
 
         #region Constructor / Disposing
@@ -37,10 +26,9 @@ namespace Triamec.Tam.Samples {
         /// </summary>
         /// <param name="measurement">The Frequency Response measurement instance.</param>
         /// <param name="testFixture">A Reference to test data.</param>
-        /// <param name="formatProvider">The format provider.</param>
         /// <param name="log">The log.</param>
         /// <exception cref="ArgumentNullException">One of the arguments is <see langword="null"/>.</exception>
-        public FrequencyResponseMeasurementCallback(TaskCompletionSource<object> tcs, FrequencyResponseMeasurement measurement, CultureInfo formatProvider) {
+        public FrequencyResponseMeasurementCallback(TaskCompletionSource<object> tcs, FrequencyResponseMeasurement measurement) {
 
             if (measurement == null) throw new ArgumentNullException(nameof(measurement));
             measurement.MeasureFrequencyResponseProgressChanged += OnGetFrequencyResponseResultProgressChanged;
@@ -48,7 +36,7 @@ namespace Triamec.Tam.Samples {
             _tcs = tcs;
 
             //if (testFixture == null) throw new ArgumentNullException(nameof(testFixture));
-            _formatProvider = formatProvider;
+            //_formatProvider = formatProvider;
             string testDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Frequency Response");
             if (!Directory.Exists(testDir)) {
                 Directory.CreateDirectory(testDir);

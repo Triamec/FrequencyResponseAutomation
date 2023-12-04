@@ -163,33 +163,21 @@ namespace Triamec.Tam.Samples {
             // Does not contain any asserts, but ensures the principal Frequency Response acquirement mechanism is tested
             System.Diagnostics.Debug.WriteLine("Starting measure");
 
+            var controlSystem = SetupControlSystem();
 
-            #region Setup special culture
-            var culture = new CultureInfo(CultureInfo.InvariantCulture.LCID, false);
-            Thread thread = Thread.CurrentThread;
-            CultureInfo backupCulture = thread.CurrentCulture;
-            thread.CurrentCulture = culture;
-            #endregion Setup special culture
-
+            var (measurement, task) = StartFrequencyResponse(controlSystem);
+            var wait = new TimeSpan(0, 0, 3, 0, 0);
             try {
-                var controlSystem = SetupControlSystem();
-
-                var (measurement, task) = StartFrequencyResponse(controlSystem, culture);
-                var wait = new TimeSpan(0, 0, 3, 0, 0);
-                try {
-                    await TimeoutAfter(task, wait);
-                } catch (TimeoutException) {
-                    measurement.MeasureFrequencyResponseCancel();
-                    Console.WriteLine(string.Format("The test duration exceeded {0} minutes", wait.TotalMinutes));
-                    return;
-                } finally {
-                    measurement.Dispose();
-                    controlSystem.Tidy();
-                    string resultFile = _callback.ResultFile;
-                }
+                await TimeoutAfter(task, wait);
+            } catch (TimeoutException) {
+                measurement.MeasureFrequencyResponseCancel();
+                Console.WriteLine(string.Format("The test duration exceeded {0} minutes", wait.TotalMinutes));
+                return;
             } finally {
-                thread.CurrentCulture = backupCulture;
+                measurement.Dispose();
+                controlSystem.Tidy();
             }
+
         }
 
         async Task StartBackAndForthMove(CancellationToken cancellationToken) {
@@ -323,7 +311,7 @@ namespace Triamec.Tam.Samples {
         /// <returns>
         /// The created resource that must be managed by the caller.
         /// </returns>
-        (FrequencyResponseMeasurement measurement, Task task) StartFrequencyResponse(IControlSystem system, CultureInfo formatProvider) {
+        (FrequencyResponseMeasurement measurement, Task task) StartFrequencyResponse(IControlSystem system) {
             var measurement = new FrequencyResponseMeasurement();
             var parameters = new FrequencyResponseMeasurementParameters(system) {
                 FrequencyRangeMinimum = minimumFrequency,
@@ -338,7 +326,7 @@ namespace Triamec.Tam.Samples {
 
             var tcs = new TaskCompletionSource<object>();
 
-            _callback = new FrequencyResponseMeasurementCallback(tcs, measurement, formatProvider);
+            _callback = new FrequencyResponseMeasurementCallback(tcs, measurement);
             string desiredMethod = selectedMethod;
             var methods = FrequencyResponseConfig.Read()
                                    .MeasurementMethods
