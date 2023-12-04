@@ -1,11 +1,8 @@
-﻿// Copyright © 2004 Triamec Motion AG
+﻿// Copyright © 2023 Triamec Motion AG
 
 //using log4net;
 using System;
-using System.Globalization;
 using System.IO;
-using System.Text;
-using System.Threading;
 using Triamec.FrequencyResponseAnalysis;
 using System.Diagnostics;
 using System.Threading.Tasks;

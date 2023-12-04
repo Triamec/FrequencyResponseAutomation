@@ -7,13 +7,9 @@ using Triamec.FrequencyResponseAnalysis.Configuration;
 using Triamec.Tam.FrequencyResponseAnalysis;
 using Triamec.Tam.Samples.Properties;
 using Triamec.TriaLink;
-
-
 // Rlid19 represents the register layout of drives of the current generation. A previous generation drive has layout 4.
 using Axis = Triamec.Tam.Rlid19.Axis;
-using Triamec.Diagnostics;
 using System.Threading.Tasks;
-using System.Linq.Expressions;
 
 namespace Triamec.Tam.Samples {
     /// <summary>
