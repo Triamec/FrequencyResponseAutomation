@@ -178,11 +178,15 @@ namespace Triamec.Tam.Samples {
             var register = (Axis)_axis.Register;
             float currentReferencePosition = register.Signals.PathPlanner.PositionFloat.Read();
             TimeSpan moveTimeout = new TimeSpan(0, 0, 10);
-            while (!cancellationToken.IsCancellationRequested) {
-                await _axis.MoveAbsolute(currentReferencePosition + backAndForthDistance / 2, backAndForthVelocity, PathPlannerDirection.Positive).WaitForSuccessAsync(moveTimeout);
-                if (!cancellationToken.IsCancellationRequested) {
-                    await _axis.MoveAbsolute(currentReferencePosition - backAndForthDistance / 2, -backAndForthVelocity, PathPlannerDirection.Negative).WaitForSuccessAsync(moveTimeout);
+            try {
+                while (!cancellationToken.IsCancellationRequested) {
+                    await _axis.MoveAbsolute(currentReferencePosition + backAndForthDistance / 2, backAndForthVelocity, PathPlannerDirection.Positive).WaitForSuccessAsync(moveTimeout);
+                    if (!cancellationToken.IsCancellationRequested) {
+                        await _axis.MoveAbsolute(currentReferencePosition - backAndForthDistance / 2, -backAndForthVelocity, PathPlannerDirection.Negative).WaitForSuccessAsync(moveTimeout);
+                    }
                 }
+            } catch (CommandRejectedException ex) when (!(ex is AxisCommandRejectedException)) {
+                // superseded by stop, ignore
             }
         }
 
@@ -271,17 +275,22 @@ namespace Triamec.Tam.Samples {
 
                     await _axis.MoveAbsolute(measurementPositions[i]).WaitForSuccessAsync(TimeSpan.FromSeconds(10));
 
+                    Task moveTask;
                     if (doBackAndForthMove) {
-                        Task moveTask = StartBackAndForthMove(cancellationToken, backAndForthDistance, backAndForthVelocity);
+                        moveTask = StartBackAndForthMove(cancellationToken, backAndForthDistance, backAndForthVelocity);
+                    } else {
+                        moveTask = null;
                     }
                     Task measureTask = Measure();
 
                     await measureTask;
                     cts.Cancel();
-                    await _axis.Stop(false).WaitForSuccessAsync(TimeSpan.FromSeconds(10));             
+                    //await Task.Delay(TimeSpan.FromSeconds(5));
+                    await _axis.Stop(false).WaitForSuccessAsync(TimeSpan.FromSeconds(10));
+                    if (moveTask != null) {
+                        await moveTask;
+                    }
                 }
-
-                
 
             } catch (TamException ex) {
                 MessageBox.Show(ex.Message, Resources.MoveErrorCaption, MessageBoxButtons.OK,
@@ -297,7 +306,7 @@ namespace Triamec.Tam.Samples {
 
             // open loop
             result.MeasurementMethod = FrequencyResponseConfig.Read().MeasurementMethods[0];
-            
+
             return result;
         }
         #endregion SetupFrequencyResponseAxis
