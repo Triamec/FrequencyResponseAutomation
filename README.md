@@ -10,7 +10,7 @@ This application was built on the [Hello World! Example](https://github.com/Tria
 
 ## Hardware Prerequisites
 
-To record a Frequency Response of an axis, you need a *Triamec* drive with a motor and encoder connected and configured with a stable position controller. Connect the drive by *Tria-Link*, *USB* or *Ethernet*.
+To record a Frequency Response of an axis, you need a *Triamec* drive with a motor and encoder connected and configured. If you want to do the measurement at a specific position, in Closes Loop or with a back and forth move running, you also need a stable position controller. Connect the drive by *Tria-Link*, *USB* or *Ethernet*.
 
 ## Software Prerequisites
 
@@ -61,7 +61,7 @@ void MoveAxis(int sign) =>
 
     // Move a distance with dedicated velocity.
     // If the axis is just moving, it is reprogrammed with this command.
-    _axis.MoveRelative(Math.Sign(sign) * Distance, _velocityMaximum * _velocitySlider.Value * 0.01f);
+    _axis.MoveRelative(Math.Sign(sign) * Distance);
 ```
 
 Press **Disable** to switch off the axis.
@@ -76,4 +76,43 @@ void DisableDrive() {
     _axis.Drive.SwitchOff();
 }
 ```
+Press **Measure** to start a Frequency Response measurement
+```csharp
+      async void OnMeasureButtonClick(object sender, EventArgs e) {
+            try {
+                _measureButton.Enabled = false;
 
+                for (int i = 0; i < MeasurementPositions.Length; i++) {
+                    CancellationTokenSource cts = new CancellationTokenSource();
+                    CancellationToken cancellationToken = cts.Token;
+
+                    await _axis.MoveAbsolute(MeasurementPositions[i], MoveToPositionVelocity).WaitForSuccessAsync(TimeSpan.FromSeconds(10));
+
+                    Task moveTask;
+                    if (DoBackAndForthMove) {
+                        if (SelectedMethod == "Closed Loop") {
+                            moveTask = MoveBackAndForth(cancellationToken, BackAndForthDistance, BackAndForthVelocity);
+                        } else {
+                            throw new Exception("Back and Forth move is only possible in Closed Loop");
+                        }
+                    } else {
+                        moveTask = null;
+                    }
+                    Task measureTask = Measure();
+
+                    await measureTask;
+                    cts.Cancel();
+                    await _axis.Stop(false).WaitForSuccessAsync(TimeSpan.FromSeconds(10));
+                    if (moveTask != null) {
+                        await moveTask;
+                    }
+                }
+
+            } catch (TamException ex) {
+                MessageBox.Show(ex.Message, Resources.MoveErrorCaption, MessageBoxButtons.OK,
+                    MessageBoxIcon.Information, MessageBoxDefaultButton.Button1, 0);
+            } finally {
+                _measureButton.Enabled = true;
+            }
+        }
+```
