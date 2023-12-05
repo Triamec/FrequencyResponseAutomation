@@ -10,7 +10,7 @@ This application was built on the [Hello World! Example](https://github.com/Tria
 
 ## Hardware Prerequisites
 
-To record a Frequency Response of an axis, you need a *Triamec* drive with a motor and encoder connected and configured. If you want to do the measurement at a specific position, in Closed Loop or with a back and forth move running, you also need a stable position controller. Connect the drive by *Tria-Link*, *USB* or *Ethernet*.
+To record a frequency response of an axis, you need a *Triamec* drive with a motor and encoder connected and configured. If you want to do the measurement at a specific position, in closed loop or with a back and forth move running, you also need a stable position controller. Connect the drive by *Tria-Link*, *USB* or *Ethernet*.
 
 ## Software Prerequisites
 
@@ -23,7 +23,7 @@ In addition you need [TAM Software](https://www.triamec.com/en/tam-software-supp
 1. Open the `Frequency Response Automation.sln`.
 2. Open the `Frequency Response Automation.cs` (view code)
 3. Set the name of the axis for `AxisName`. Double check it in the register *Axes[].Information.AxisName* using the *TAM System Explorer*.
-4. Adjust all parameters needed for the Frequency Response Measurement like you would in the Frequency Response Tool within the *TAM System Explorer*
+4. Adjust all parameters needed for the frequency response measurement like you would in the Frequency Response Tool within the *TAM System Explorer*
 ```csharp
         const int MeasurementFrequency = 100000; // [Hz]
         const int MinimumFrequency = 300; // [Hz]
@@ -35,7 +35,7 @@ In addition you need [TAM Software](https://www.triamec.com/en/tam-software-supp
 ```
    
 6. Additionally to these parameters, you can also configure if you want to execute a back and forth move during measurement. This can for example be helpful if you want to minimize effects of friction on the measurement. Make sure the axis has enough room to move for the configured value `BackAndForthDistance` and a choose a low value for `BackAndForthVelocity`.
-7. Adjust the positions where you want to measure the Frequency Response with `MeasurementPositions`.
+7. Adjust the positions where you want to measure the frequency response with `MeasurementPositions`.
 8. Now make sure the *TAM System Explorer* is not connected to the drive, or simply close it. This is not necessary if you are connected to the drive via Ethernet, where multiple connections are possible.
 9. Start the application.
 
@@ -76,7 +76,7 @@ void DisableDrive() {
     _axis.Drive.SwitchOff();
 }
 ```
-Press **Measure** to start a Frequency Response measurement. The executed measurements will by default be saved to `FrequencyResponseAutomation\Frequency Response Automation\bin\Debug\net48\Frequency Response`
+Press **Measure** to start a frequency response measurement. The executed measurements will by default be saved to `FrequencyResponseAutomation\Frequency Response Automation\bin\Debug\net48\Frequency Response`
 ```csharp
       async void OnMeasureButtonClick(object sender, EventArgs e) {
             try {
