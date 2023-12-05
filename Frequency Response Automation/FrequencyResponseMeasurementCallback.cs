@@ -1,6 +1,5 @@
 ﻿// Copyright © 2023 Triamec Motion AG
 
-//using log4net;
 using System;
 using System.IO;
 using Triamec.FrequencyResponseAnalysis;

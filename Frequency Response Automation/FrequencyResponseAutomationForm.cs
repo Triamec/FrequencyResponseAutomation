@@ -1,15 +1,17 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using Triamec.FrequencyResponseAnalysis;
 using Triamec.FrequencyResponseAnalysis.Configuration;
 using Triamec.Tam.FrequencyResponseAnalysis;
+using Triamec.Tam.Requests;
 using Triamec.Tam.Samples.Properties;
 using Triamec.TriaLink;
 // Rlid19 represents the register layout of drives of the current generation. A previous generation drive has layout 4.
 using Axis = Triamec.Tam.Rlid19.Axis;
-using System.Threading.Tasks;
 
 namespace Triamec.Tam.Samples {
     /// <summary>
@@ -27,18 +29,18 @@ namespace Triamec.Tam.Samples {
 
         #region Frequency Response measurement parameters
 
-        int measurementFrequency = 100000; // [Hz]
-        int minimumFrequency = 300; // [Hz]
-        int maximumFrequency = 400; // [Hz]
-        int numberOfSamples = 3; // [-]
-        FrequencySpacing frequencySpacing = FrequencySpacing.Optimized;
-        string selectedMethod = "Closed Loop";
-        double[] excitationLimits = new double[] { 13.8, 0.5, 0.5 };
-        double[] measurementPositions = new double[] { 30.0, 90.0, 120.0 };
-        float moveToPositionVelocity = 60;
-        bool doBackAndForthMove = true;
-        float backAndForthDistance = 30;
-        float backAndForthVelocity = 10;
+        const int MeasurementFrequency = 100000; // [Hz]
+        const int MinimumFrequency = 300; // [Hz]
+        const int MaximumFrequency = 400; // [Hz]
+        const int NumberOfSamples = 3; // [-]
+        static readonly FrequencySpacing FrequencySpacing = FrequencySpacing.Optimized;
+        const string SelectedMethod = "Closed Loop";
+        static readonly double[] ExcitationLimits = new double[] { 13.8, 0.5, 0.5 };
+        static readonly double[] MeasurementPositions = new double[] { 30.0, 90.0, 120.0 };
+        const float MoveToPositionVelocity = 60;
+        static readonly bool DoBackAndForthMove = true;
+        const float BackAndForthDistance = 30;
+        const float BackAndForthVelocity = 10;
 
         #endregion Frequency Response measurement parameters
 
@@ -62,8 +64,6 @@ namespace Triamec.Tam.Samples {
 
         TamTopology _topology;
         TamAxis _axis;
-
-        FrequencyResponseMeasurementCallback _callback;
 
         /// <summary>
         /// Prepares the TAM system.
@@ -147,7 +147,7 @@ namespace Triamec.Tam.Samples {
 
         async Task Measure() {
             // Does not contain any asserts, but ensures the principal Frequency Response acquirement mechanism is tested
-            System.Diagnostics.Debug.WriteLine("Starting measure");
+            Debug.WriteLine("Starting measure");
 
             var controlSystem = SetupControlSystem();
 
@@ -166,20 +166,35 @@ namespace Triamec.Tam.Samples {
 
         }
 
-        async Task StartBackAndForthMove(CancellationToken cancellationToken, float backAndForthDistance, float backAndForthVelocity) {
-            System.Diagnostics.Debug.WriteLine("Starting back and forth move");
+        async Task WaitAndAssertRequest(TamRequest request, TimeSpan moveTimeout) {
+            var terminated = await request.WaitForTerminationAsync(moveTimeout);
+            if (!terminated) { throw new TimeoutException("Move duration exceeded."); }
+            switch (request.Termination) {
+                case TamRequestResolution.Completed:
+                case TamRequestResolution.Superseded:
+
+                    // reprogramming comes from Stop, this is OK
+                    break;
+
+                default:
+                    throw new CommandRejectedException("Move request termination was " + request.Termination);
+            }
+        }
+
+        async Task MoveBackAndForth(CancellationToken cancellationToken, float backAndForthDistance, float backAndForthVelocity) {
+            Debug.WriteLine("Starting back and forth move");
             var register = (Axis)_axis.Register;
             float currentReferencePosition = register.Signals.PathPlanner.PositionFloat.Read();
             TimeSpan moveTimeout = new TimeSpan(0, 0, 10);
-            try {
-                while (!cancellationToken.IsCancellationRequested) {
-                    await _axis.MoveAbsolute(currentReferencePosition + backAndForthDistance / 2, backAndForthVelocity, PathPlannerDirection.Positive).WaitForSuccessAsync(moveTimeout);
-                    if (!cancellationToken.IsCancellationRequested) {
-                        await _axis.MoveAbsolute(currentReferencePosition - backAndForthDistance / 2, -backAndForthVelocity, PathPlannerDirection.Negative).WaitForSuccessAsync(moveTimeout);
-                    }
-                }
-            } catch (CommandRejectedException ex) when (!(ex is AxisCommandRejectedException)) {
-                // superseded by stop, ignore
+            while (!cancellationToken.IsCancellationRequested) {
+                var request = _axis.MoveAbsolute(currentReferencePosition + backAndForthDistance / 2,
+                                                 backAndForthVelocity, PathPlannerDirection.Positive);
+                await WaitAndAssertRequest(request, moveTimeout);
+                if (cancellationToken.IsCancellationRequested) break;
+
+                request = _axis.MoveAbsolute(currentReferencePosition - backAndForthDistance / 2,
+                                             -backAndForthVelocity, PathPlannerDirection.Negative);
+                await WaitAndAssertRequest(request, moveTimeout);
             }
         }
 
@@ -262,16 +277,16 @@ namespace Triamec.Tam.Samples {
             try {
                 _measureButton.Enabled = false;
 
-                for (int i = 0; i < measurementPositions.Length; i++) {
+                for (int i = 0; i < MeasurementPositions.Length; i++) {
                     CancellationTokenSource cts = new CancellationTokenSource();
                     CancellationToken cancellationToken = cts.Token;
 
-                    await _axis.MoveAbsolute(measurementPositions[i], moveToPositionVelocity).WaitForSuccessAsync(TimeSpan.FromSeconds(10));
+                    await _axis.MoveAbsolute(MeasurementPositions[i], MoveToPositionVelocity).WaitForSuccessAsync(TimeSpan.FromSeconds(10));
 
                     Task moveTask;
-                    if (doBackAndForthMove) {
-                        if (selectedMethod == "Closed Loop") {
-                            moveTask = StartBackAndForthMove(cancellationToken, backAndForthDistance, backAndForthVelocity);
+                    if (DoBackAndForthMove) {
+                        if (SelectedMethod == "Closed Loop") {
+                            moveTask = MoveBackAndForth(cancellationToken, BackAndForthDistance, BackAndForthVelocity);
                         } else {
                             throw new Exception("Back and Forth move is only possible in Closed Loop");
                         }
@@ -319,26 +334,26 @@ namespace Triamec.Tam.Samples {
         (FrequencyResponseMeasurement measurement, Task task) StartFrequencyResponse(IControlSystem system) {
             var measurement = new FrequencyResponseMeasurement();
             var parameters = new FrequencyResponseMeasurementParameters(system) {
-                FrequencyRangeMinimum = minimumFrequency,
-                FrequencyRangeMaximum = maximumFrequency,
-                FrequencySteps = numberOfSamples,
-                Spacing = frequencySpacing,
+                FrequencyRangeMinimum = MinimumFrequency,
+                FrequencyRangeMaximum = MaximumFrequency,
+                FrequencySteps = NumberOfSamples,
+                Spacing = FrequencySpacing,
                 SettlingTime = TimeSpan.FromSeconds(0.2),
             };
-            for (int i = 0; i < excitationLimits.Length; i++) {
-                parameters.SetMeasuringPointMaximum(i, excitationLimits[i]);
+            for (int i = 0; i < ExcitationLimits.Length; i++) {
+                parameters.SetMeasuringPointMaximum(i, ExcitationLimits[i]);
             }
 
             var tcs = new TaskCompletionSource<object>();
 
-            _callback = new FrequencyResponseMeasurementCallback(tcs, measurement);
-            string desiredMethod = selectedMethod;
+            new FrequencyResponseMeasurementCallback(tcs, measurement);
+            string desiredMethod = SelectedMethod;
             var methods = FrequencyResponseConfig.Read()
                                    .MeasurementMethods
                                    .Where(system.SupportsMethod)
                                    .ToArray();
             system.MeasurementMethod = methods.Single(method => method.Name == desiredMethod);
-            system.SamplingTime = TimeSpan.FromTicks(TimeSpan.TicksPerSecond / measurementFrequency);
+            system.SamplingTime = TimeSpan.FromTicks(TimeSpan.TicksPerSecond / MeasurementFrequency);
             measurement.MeasureFrequencyResponseAsync(system, parameters);
             return (measurement, tcs.Task);
         }
