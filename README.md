@@ -76,7 +76,7 @@ void DisableDrive() {
     _axis.Drive.SwitchOff();
 }
 ```
-Press **Measure** to start a Frequency Response measurement.
+Press **Measure** to start a Frequency Response measurement. The executed measurements will by default be saved to `FrequencyResponseAutomation\Frequency Response Automation\bin\Debug\net48\Frequency Response`
 ```csharp
       async void OnMeasureButtonClick(object sender, EventArgs e) {
             try {
