@@ -16,14 +16,14 @@ To record a frequency response of an axis, you need a *Triamec* drive with a mot
 
 This project is made and built with [Microsoft Visual Studio](https://visualstudio.microsoft.com/en/).
 
-In addition you need [TAM Software](https://www.triamec.com/en/tam-software-support.html) installation.
+In addition you need a [TAM Software](https://www.triamec.com/en/tam-software-support.html) installation.
 
 ## Run the *Frequency Response Automation* Application
 
 1. Open the `Frequency Response Automation.sln`.
-2. Open the `Frequency Response Automation.cs` (view code)
+2. Open the `Frequency Response Automation.cs` (view code).
 3. Set the name of the axis for `AxisName`. Double check it in the register *Axes[].Information.AxisName* using the *TAM System Explorer*.
-4. Adjust all parameters needed for the frequency response measurement like you would in the Frequency Response Tool within the *TAM System Explorer*
+4. Adjust all parameters needed for the frequency response measurement like you would in the Frequency Response Tool within the *TAM System Explorer*.
 ```csharp
         const int MeasurementFrequency = 100000; // [Hz]
         const int MinimumFrequency = 300; // [Hz]
