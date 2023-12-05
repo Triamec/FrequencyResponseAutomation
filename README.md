@@ -6,7 +6,7 @@ Minimal example on how to use the TAM API to automate the frequency response mea
 
 This application was built on the [Hello World! Example](https://github.com/Triamec/HelloWorld).
 
-<img src="./doc/Screenshot.png" alt="TAM Frequency Response Automation" width="30%">
+<img src="./doc/Screenshot.png" alt="TAM Frequency Response Automation" width="40%">
 
 ## Hardware Prerequisites
 
