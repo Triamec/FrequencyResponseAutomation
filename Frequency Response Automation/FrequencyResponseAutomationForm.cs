@@ -332,6 +332,14 @@ namespace Triamec.Tam.Samples {
         /// The created resource that must be managed by the caller.
         /// </returns>
         (FrequencyResponseMeasurement measurement, Task task) StartFrequencyResponse(IControlSystem system) {
+            string desiredMethod = SelectedMethod;
+            var methods = FrequencyResponseConfig.Read()
+                                   .MeasurementMethods
+                                   .Where(system.SupportsMethod)
+                                   .ToArray();
+            system.MeasurementMethod = methods.Single(method => method.Name == desiredMethod);
+            system.SamplingTime = TimeSpan.FromTicks(TimeSpan.TicksPerSecond / MeasurementFrequency);
+
             var measurement = new FrequencyResponseMeasurement();
             var parameters = new FrequencyResponseMeasurementParameters(system) {
                 FrequencyRangeMinimum = MinimumFrequency,
@@ -347,13 +355,6 @@ namespace Triamec.Tam.Samples {
             var tcs = new TaskCompletionSource<object>();
 
             new FrequencyResponseMeasurementCallback(tcs, measurement);
-            string desiredMethod = SelectedMethod;
-            var methods = FrequencyResponseConfig.Read()
-                                   .MeasurementMethods
-                                   .Where(system.SupportsMethod)
-                                   .ToArray();
-            system.MeasurementMethod = methods.Single(method => method.Name == desiredMethod);
-            system.SamplingTime = TimeSpan.FromTicks(TimeSpan.TicksPerSecond / MeasurementFrequency);
             measurement.MeasureFrequencyResponseAsync(system, parameters);
             return (measurement, tcs.Task);
         }
