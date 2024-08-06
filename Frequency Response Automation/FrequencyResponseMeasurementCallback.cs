@@ -75,6 +75,7 @@ namespace Triamec.Tam.Samples {
 
                     FrequencyResponse result = args.Result;
                     if (result != null) {
+                        result.InvertSignIfNeeded(); // needed for closed loop measurements
 
                         args.Result.Save(ResultFile);
 
