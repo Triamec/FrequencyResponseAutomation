@@ -73,11 +73,11 @@ namespace Triamec.Tam.Samples {
                         Debug.WriteLine($"Measurement failed: {args.Failure.FullMessage()}");
                     }
 
-                    FrequencyResponse result = args.Result;
+                    FrequencyResponse result = args.Response;
                     if (result != null) {
                         result.InvertSignIfNeeded(); // needed for closed loop measurements
 
-                        args.Result.Save(ResultFile);
+                        args.Response.Save(ResultFile);
 
                         _tcs.SetResult(null);
                     } else {
