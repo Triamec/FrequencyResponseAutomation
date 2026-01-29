@@ -14,14 +14,11 @@
     <Content Include="Properties\App.ico" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Triamec.Tam.Simulation">
-      <Version>7.3.1</Version>
-    </PackageReference>
     <PackageReference Include="Triamec.Tam.TriaLink">
-      <Version>7.23.0</Version>
+      <Version>7.23.2</Version>
     </PackageReference>
     <PackageReference Include="Triamec.Tam.UI">
-      <Version>8.3.1</Version>
+      <Version>8.4.1</Version>
     </PackageReference>
   </ItemGroup>
 </Project>
