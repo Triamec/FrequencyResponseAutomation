@@ -15,10 +15,10 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Triamec.Tam.TriaLink">
-      <Version>7.23.5</Version>
+      <Version>7.24.3</Version>
     </PackageReference>
     <PackageReference Include="Triamec.Tam.UI">
-      <Version>8.4.2</Version>
+      <Version>8.4.3</Version>
     </PackageReference>
   </ItemGroup>
 </Project>
