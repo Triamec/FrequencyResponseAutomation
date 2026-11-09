@@ -4,14 +4,10 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using Triamec.FrequencyResponseAnalysis;
-using Triamec.FrequencyResponseAnalysis.Configuration;
-using Triamec.Tam.FrequencyResponseAnalysis;
-using Triamec.Tam.Requests;
+using Triamec.Tam.Commissioning.FrequencyResponseAnalysis;
+using Triamec.Tam.Commissioning.FrequencyResponseAnalysis.Configuration;
+using Triamec.Tam.Motion;
 using Triamec.Tam.Samples.Properties;
-using Triamec.TriaLink;
-// Rlid19 represents the register layout of drives of the current generation. A previous generation drive has layout 4.
-using Axis = Triamec.Tam.Rlid19.Axis;
 
 namespace Triamec.Tam.Samples {
     /// <summary>
@@ -35,8 +31,8 @@ namespace Triamec.Tam.Samples {
         const int NumberOfSamples = 3; // [-]
         static readonly FrequencySpacing FrequencySpacing = FrequencySpacing.Optimized;
         const string SelectedMethod = "Closed Loop";
-        static readonly double[] ExcitationLimits = new double[] { 13.8, 0.5, 0.5 };
-        static readonly double[] MeasurementPositions = new double[] { 30.0, 90.0, 120.0 };
+        static readonly double[] ExcitationLimits = [13.8, 0.5, 0.5];
+        static readonly double[] MeasurementPositions = [30.0, 90.0, 120.0];
         const float MoveToPositionVelocity = 60;
         static readonly bool DoBackAndForthMove = true;
         const float BackAndForthDistance = 30;
@@ -62,14 +58,13 @@ namespace Triamec.Tam.Samples {
         // Consider any limit stops.
         const double Distance = 0.5 * Math.PI;
 
-        TamTopology _topology;
-        TamAxis _axis;
+        IMotionSystem19 _system;
+        IAxis19 _axis;
 
         /// <summary>
         /// Prepares the TAM system.
         /// </summary>
-        /// <exception cref="TamException">Startup failed.</exception>
-        /// <exception cref="Triamec.Configuration.ConfigurationException">Failed to load the configuration.</exception>
+        /// <exception cref="ConnectionException">Startup failed.</exception>
         /// <remarks>
         /// 	<list type="bullet">
         /// 		<item><description>Creates a TAM topology,</description></item>
@@ -78,72 +73,31 @@ namespace Triamec.Tam.Samples {
         /// 		<item><description>loads and applies a TAM configuration.</description></item>
         /// 	</list>
         /// </remarks>
-        void Startup() {
+        async Task Startup() {
+            _system = await MotionSystem.Connect19();
 
-            // Create the root object representing the topology of the TAM hardware.
-            // We will dispose this object via components.
-            _topology = new TamTopology();
-            components.Add(_topology);
-
-            TamSystem system;
-
-            // Add the local TAM system on this PC to the topology.
-            system = _topology.AddLocalSystem();
-
-            // Boot the Tria-Link so that it learns about connected stations.
-            system.Identify();
-
-            // Find the axis with the configured name in the Tria-Link.
-            // The AsDepthFirstLeaves extension method performs a tree search an returns all instances of type TamAxis.
-            // "Leaves" means that the search doesn't continue within TamAxis nodes.
-            _axis = system.AsDepthFirstLeaves<TamAxis>().FirstOrDefault(a => a.Name == AxisName);
-            if (_axis == null) throw new TamException(Resources.NoAxisMessage);
-
-            // Most drives get integrated into a real time control system. Accessing them via TAM API like we do here is considered
-            // a secondary use case. Tell the axis that we're going to take control. Otherwise, the axis might reject our commands.
-            // You should not do this, though, when this application is about to access the drive via the PCI interface.
-            _axis.ControlSystemTreatment.Override(enabled: true);
-
-            // Get the register layout of the axis
-            // and cast it to the RLID-specific register layout.
-            var register = (Axis)_axis.Register;
-
-            _axis.Drive.AddStateObserver(this);
+            // Find the axis with the configured name.
+            _axis = _system.Axes.FirstOrDefault(a => a.Name == AxisName) ??
+                throw new ConnectionException(Resources.NoAxisMessage);
 
             // Start displaying the position in regular intervals.
             _timer.Start();
-        }
-
-        /// <exception cref="TamException">Enabling failed.</exception>
-        void EnableDrive() {
-
-            // Set the drive operational, i.e. switch the power section on.
-            _axis.Drive.SwitchOn();
-
-            // Reset any axis error and enable the axis controller.
-            _axis.Control(AxisControlCommands.ResetErrorAndEnable);
-        }
-
-        /// <exception cref="TamException">Disabling failed.</exception>
-        void DisableDrive() {
-
-            // Disable the axis controller.
-            _axis.Control(AxisControlCommands.Disable);
-
-            // Switch the power section off.
-            _axis.Drive.SwitchOff();
         }
 
         /// <summary>
         /// Moves in the specified direction.
         /// </summary>
         /// <param name="sign">A positive or negative value indicating the direction of the motion.</param>
-        /// <exception cref="TamException">Moving failed.</exception>
-        void MoveAxis(int sign) =>
-
-            // Move a distance with dedicated velocity.
-            // If the axis is just moving, it is reprogrammed with this command.
-            _axis.MoveRelative(Math.Sign(sign) * Distance);
+        async void MoveAxis(int sign) {
+            try {
+                // Move a distance with dedicated velocity.
+                // If the axis is just moving, it is reprogrammed with this command.
+                await _axis.MoveRelative(Math.Sign(sign) * Distance);
+            } catch (Exception ex) when (ex is InvalidOperationException || ex is System.TimeoutException) {
+                MessageBox.Show(ex.Message, Resources.MoveErrorCaption, MessageBoxButtons.OK,
+                    MessageBoxIcon.Information, MessageBoxDefaultButton.Button1, 0);
+            }
+        }
 
         async Task Measure() {
             // Does not contain any asserts, but ensures the principal Frequency Response acquirement mechanism is tested
@@ -154,8 +108,8 @@ namespace Triamec.Tam.Samples {
             var (measurement, task) = StartFrequencyResponse(controlSystem);
             var wait = new TimeSpan(0, 0, 3, 0, 0);
             try {
-                await TimeoutAfter(task, wait);
-            } catch (TimeoutException) {
+                await task.WaitAsync(wait);
+            } catch (System.TimeoutException) {
                 measurement.MeasureFrequencyResponseCancel();
                 Console.WriteLine(string.Format("The test duration exceeded {0} minutes", wait.TotalMinutes));
                 return;
@@ -163,38 +117,22 @@ namespace Triamec.Tam.Samples {
                 measurement.Dispose();
                 controlSystem.Tidy();
             }
-
         }
 
-        async Task WaitAndAssertRequest(TamRequest request, TimeSpan moveTimeout) {
-            var terminated = await request.WaitForTerminationAsync(moveTimeout);
-            if (!terminated) { throw new TimeoutException("Move duration exceeded."); }
-            switch (request.Termination) {
-                case TamRequestResolution.Completed:
-                case TamRequestResolution.Superseded:
-
-                    // reprogramming comes from Stop, this is OK
-                    break;
-
-                default:
-                    throw new CommandRejectedException("Move request termination was " + request.Termination);
-            }
-        }
-
-        async Task MoveBackAndForth(CancellationToken cancellationToken, float backAndForthDistance, float backAndForthVelocity) {
+        async Task MoveBackAndForth(float backAndForthDistance, float backAndForthVelocity, CancellationToken cancellationToken) {
             Debug.WriteLine("Starting back and forth move");
-            var register = (Axis)_axis.Register;
-            float currentReferencePosition = register.Signals.PathPlanner.PositionFloat.Read();
-            TimeSpan moveTimeout = new TimeSpan(0, 0, 10);
+            float currentReferencePosition = _axis.Signals.PathPlanner.PositionFloat.Read();
             while (!cancellationToken.IsCancellationRequested) {
-                var request = _axis.MoveAbsolute(currentReferencePosition + backAndForthDistance / 2,
-                                                 backAndForthVelocity, PathPlannerDirection.Positive);
-                await WaitAndAssertRequest(request, moveTimeout);
-                if (cancellationToken.IsCancellationRequested) break;
+                try {
+                    await _axis.MoveAbsolute(currentReferencePosition + backAndForthDistance / 2,
+                                                     backAndForthVelocity, direction: ModuloDirection.Positive);
+                    if (cancellationToken.IsCancellationRequested) break;
+                    await _axis.MoveAbsolute(currentReferencePosition - backAndForthDistance / 2,
+                                                 -backAndForthVelocity, direction: ModuloDirection.Negative);
 
-                request = _axis.MoveAbsolute(currentReferencePosition - backAndForthDistance / 2,
-                                             -backAndForthVelocity, PathPlannerDirection.Negative);
-                await WaitAndAssertRequest(request, moveTimeout);
+                } catch (TaskCanceledException) {
+                    // reprogramming comes from Stop, this is OK
+                }
             }
         }
 
@@ -203,24 +141,24 @@ namespace Triamec.Tam.Samples {
         #region GUI handler methods
         #region Form handler methods
 
-        protected override void OnLoad(EventArgs e) {
+        protected override async void OnLoad(EventArgs e) {
             base.OnLoad(e);
 
             try {
-                Startup();
+                await Startup();
                 _driveGroupBox.Enabled = true;
-            } catch (TamException ex) {
+            } catch (ConnectionException ex) {
                 MessageBox.Show(this, ex.FullMessage(), Resources.StartupErrorCaption, MessageBoxButtons.OK,
                     MessageBoxIcon.Error, MessageBoxDefaultButton.Button1, 0);
             }
         }
 
-        protected override void OnFormClosed(FormClosedEventArgs e) {
+        protected override async void OnFormClosed(FormClosedEventArgs e) {
             base.OnFormClosed(e);
             if (_axis != null) {
                 try {
-                    DisableDrive();
-                } catch (TamException ex) {
+                    await _axis.Disable();
+                } catch (Exception ex) when (ex is InvalidOperationException || ex is System.TimeoutException) {
                     MessageBox.Show(this, ex.Message, Resources.StartupErrorCaption, MessageBoxButtons.OK,
                         MessageBoxIcon.Error, MessageBoxDefaultButton.Button1, 0);
                 }
@@ -232,8 +170,8 @@ namespace Triamec.Tam.Samples {
 
         void OnEnableButtonClick(object sender, EventArgs e) {
             try {
-                EnableDrive();
-            } catch (TamException ex) {
+                _axis.Enable();
+            } catch (Exception ex) when (ex is InvalidOperationException || ex is System.TimeoutException) {
                 MessageBox.Show(ex.Message, Resources.EnablingErrorCaption, MessageBoxButtons.OK,
                     MessageBoxIcon.Information, MessageBoxDefaultButton.Button1, 0);
             }
@@ -244,60 +182,44 @@ namespace Triamec.Tam.Samples {
             _movePositiveButton.Enabled = true;
         }
 
-        void OnDisableButtonClick(object sender, EventArgs e) {
+        async void OnDisableButtonClick(object sender, EventArgs e) {
             _moveNegativeButton.Enabled = false;
             _movePositiveButton.Enabled = false;
             try {
-                DisableDrive();
-            } catch (TamException ex) {
+                await _axis.Disable();
+            } catch (Exception ex) when (ex is InvalidOperationException || ex is System.TimeoutException) {
                 MessageBox.Show(ex.Message, Resources.DisablingErrorCaption, MessageBoxButtons.OK,
                     MessageBoxIcon.Information, MessageBoxDefaultButton.Button1, 0);
             }
         }
 
-        void OnMoveNegativeButtonClick(object sender, EventArgs e) {
-            try {
-                MoveAxis(-1);
-            } catch (TamException ex) {
-                MessageBox.Show(ex.Message, Resources.MoveErrorCaption, MessageBoxButtons.OK,
-                    MessageBoxIcon.Information, MessageBoxDefaultButton.Button1, 0);
-            }
-        }
+        void OnMoveNegativeButtonClick(object sender, EventArgs e) => MoveAxis(-1);
 
-        void OnMovePositiveButtonClick(object sender, EventArgs e) {
-            try {
-                MoveAxis(1);
-            } catch (TamException ex) {
-                MessageBox.Show(ex.Message, Resources.MoveErrorCaption, MessageBoxButtons.OK,
-                    MessageBoxIcon.Information, MessageBoxDefaultButton.Button1, 0);
-            }
-        }
+        void OnMovePositiveButtonClick(object sender, EventArgs e) => MoveAxis(1);
 
         async void OnMeasureButtonClick(object sender, EventArgs e) {
             try {
                 _measureButton.Enabled = false;
 
                 for (int i = 0; i < MeasurementPositions.Length; i++) {
-                    CancellationTokenSource cts = new CancellationTokenSource();
+                    CancellationTokenSource cts = new();
                     CancellationToken cancellationToken = cts.Token;
 
-                    await _axis.MoveAbsolute(MeasurementPositions[i], MoveToPositionVelocity).WaitForSuccessAsync(TimeSpan.FromSeconds(10));
+                    await _axis.MoveAbsolute(MeasurementPositions[i], MoveToPositionVelocity);
 
                     Task moveTask;
                     if (DoBackAndForthMove) {
                         if (SelectedMethod == "Closed Loop") {
-                            moveTask = MoveBackAndForth(cancellationToken, BackAndForthDistance, BackAndForthVelocity);
+                            moveTask = MoveBackAndForth(BackAndForthDistance, BackAndForthVelocity, cancellationToken);
                         } else {
                             throw new Exception("Back and Forth move is only possible in Closed Loop");
                         }
                     } else {
                         moveTask = null;
                     }
-                    Task measureTask = Measure();
-
-                    await measureTask;
+                    await Measure();
                     cts.Cancel();
-                    await _axis.Stop(false).WaitForSuccessAsync(TimeSpan.FromSeconds(10));
+                    await _axis.Stop();
                     if (moveTask != null) {
                         await moveTask;
                     }
@@ -311,9 +233,8 @@ namespace Triamec.Tam.Samples {
             }
         }
 
-        IControlSystem SetupControlSystem() {
-
-            var result = _axis.AsControlSystem();
+        Commissioning.FrequencyResponseAnalysis.IControlSystem SetupControlSystem() {
+            var result = _axis.AsTamAxis().AsControlSystem();
 
             // open loop
             result.MeasurementMethod = FrequencyResponseConfig.Read().MeasurementMethods[0];
@@ -331,7 +252,9 @@ namespace Triamec.Tam.Samples {
         /// <returns>
         /// The created resource that must be managed by the caller.
         /// </returns>
-        (FrequencyResponseMeasurement measurement, Task task) StartFrequencyResponse(IControlSystem system) {
+        static (FrequencyResponseMeasurement measurement, Task task) StartFrequencyResponse(
+            Commissioning.FrequencyResponseAnalysis.IControlSystem system) {
+
             string desiredMethod = SelectedMethod;
             var methods = FrequencyResponseConfig.Read()
                                    .MeasurementMethods
@@ -354,37 +277,12 @@ namespace Triamec.Tam.Samples {
 
             var tcs = new TaskCompletionSource<object>();
 
-            new FrequencyResponseMeasurementCallback(tcs, measurement);
+            _ = new FrequencyResponseMeasurementCallback(tcs, measurement);
             measurement.MeasureFrequencyResponseAsync(system, parameters);
             return (measurement, tcs.Task);
         }
 
         #endregion FrequencyResponseLogic helpers
-
-        /// <summary>
-        /// Creates a new <see cref="Task"/> that completes if this <see cref="Task"/> completes or a specified duration
-        /// elapses.
-        /// </summary>
-        /// <param name="task">The task to wait for.</param>
-        /// <param name="timeout">The duration to maximally wait for <paramref name="task"/>s completion.</param>
-        /// <exception cref="TimeoutException">A timeout occurred.</exception>
-        // TODO unit testing
-        static async Task TimeoutAfter(Task task, TimeSpan timeout) {
-            using (var timeoutCancellationTokenSource = new CancellationTokenSource()) {
-                var completedTask = await Task.WhenAny(task, Task.Delay(timeout, timeoutCancellationTokenSource.Token))
-                                              .ConfigureAwait(continueOnCapturedContext: false);
-
-                if (completedTask == task) {
-                    timeoutCancellationTokenSource.Cancel();
-
-                    // propagate exception rather than AggregateException, if calling task.Result.
-                    await task.ConfigureAwait(continueOnCapturedContext: false);
-                } else {
-                    throw new TimeoutException();
-                }
-            }
-        }
-
         #endregion Button handler methods
 
         #region Menu handler methods
@@ -396,7 +294,5 @@ namespace Triamec.Tam.Samples {
         //void OnTimerTick(object sender, EventArgs e) => ReadPosition();
 
         #endregion Timer methods
-
-
     }
 }

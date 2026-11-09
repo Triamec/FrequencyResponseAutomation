@@ -2,7 +2,7 @@
 
 using System;
 using System.IO;
-using Triamec.FrequencyResponseAnalysis;
+using Triamec.Tam.Commissioning.FrequencyResponseAnalysis;
 using System.Diagnostics;
 using System.Threading.Tasks;
 
@@ -24,7 +24,7 @@ namespace Triamec.Tam.Samples {
         /// <exception cref="ArgumentNullException">One of the arguments is <see langword="null"/>.</exception>
         public FrequencyResponseMeasurementCallback(TaskCompletionSource<object> tcs, FrequencyResponseMeasurement measurement) {
 
-            if (measurement == null) throw new ArgumentNullException(nameof(measurement));
+            ArgumentNullException.ThrowIfNull(measurement);
             measurement.MeasureFrequencyResponseProgressChanged += OnGetFrequencyResponseResultProgressChanged;
             measurement.MeasureFrequencyResponseCompleted += OnGetFrequencyResponseResultCompletedEvent;
             _tcs = tcs;
@@ -76,9 +76,7 @@ namespace Triamec.Tam.Samples {
                     FrequencyResponse result = args.Response;
                     if (result != null) {
                         result.InvertSignIfNeeded(); // needed for closed loop measurements
-
                         args.Response.Save(ResultFile);
-
                         _tcs.SetResult(null);
                     } else {
                         _tcs.SetException(new Exception("Measurement failed."));
