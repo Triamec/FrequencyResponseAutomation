@@ -168,9 +168,9 @@ namespace Triamec.Tam.Samples {
 
         #region Button handler methods
 
-        void OnEnableButtonClick(object sender, EventArgs e) {
+        async void OnEnableButtonClick(object sender, EventArgs e) {
             try {
-                _axis.Enable();
+                await _axis.Enable();
             } catch (Exception ex) when (ex is InvalidOperationException || ex is System.TimeoutException) {
                 MessageBox.Show(ex.Message, Resources.EnablingErrorCaption, MessageBoxButtons.OK,
                     MessageBoxIcon.Information, MessageBoxDefaultButton.Button1, 0);

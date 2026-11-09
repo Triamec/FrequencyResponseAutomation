@@ -44,7 +44,7 @@ In addition you need a [TAM Software](https://www.triamec.com/en/tam-software-su
 Press **Enable** to activate the axis.
 
 ```csharp
-_axis.Enable();
+await _axis.Enable();
 ```
 
 Press **Left** and **Right**. The motor moves the `Distance` value in the corresponding direction. Both buttons trigger the same method. Change the speed with the slider.
@@ -60,14 +60,7 @@ void MoveAxis(int sign) =>
 Press **Disable** to switch off the axis.
 
 ```csharp
-void DisableDrive() {
-
-    // Disable the axis controller.
-    _axis.Control(AxisControlCommands.Disable);
-
-    // Switch the power section off.
-    _axis.Drive.SwitchOff();
-}
+await _axis.Disable();
 ```
 Press **Measure** to start a frequency response measurement. The executed measurements will by default be saved to `FrequencyResponseAutomation\Frequency Response Automation\bin\Debug\net48\Frequency Response`
 ```csharp
