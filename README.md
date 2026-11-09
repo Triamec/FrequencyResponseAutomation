@@ -44,14 +44,7 @@ In addition you need a [TAM Software](https://www.triamec.com/en/tam-software-su
 Press **Enable** to activate the axis.
 
 ```csharp
-void EnableDrive() {
-
-    // Set the drive operational, i.e. switch the power section on.
-    _axis.Drive.SwitchOn();
-
-    // Reset any axis error and enable the axis controller.
-    _axis.Control(AxisControlCommands.ResetErrorAndEnable);
-}
+_axis.Enable();
 ```
 
 Press **Left** and **Right**. The motor moves the `Distance` value in the corresponding direction. Both buttons trigger the same method. Change the speed with the slider.
@@ -78,31 +71,29 @@ void DisableDrive() {
 ```
 Press **Measure** to start a frequency response measurement. The executed measurements will by default be saved to `FrequencyResponseAutomation\Frequency Response Automation\bin\Debug\net48\Frequency Response`
 ```csharp
-      async void OnMeasureButtonClick(object sender, EventArgs e) {
+        async void OnMeasureButtonClick(object sender, EventArgs e) {
             try {
                 _measureButton.Enabled = false;
 
                 for (int i = 0; i < MeasurementPositions.Length; i++) {
-                    CancellationTokenSource cts = new CancellationTokenSource();
+                    CancellationTokenSource cts = new();
                     CancellationToken cancellationToken = cts.Token;
 
-                    await _axis.MoveAbsolute(MeasurementPositions[i], MoveToPositionVelocity).WaitForSuccessAsync(TimeSpan.FromSeconds(10));
+                    await _axis.MoveAbsolute(MeasurementPositions[i], MoveToPositionVelocity);
 
                     Task moveTask;
                     if (DoBackAndForthMove) {
                         if (SelectedMethod == "Closed Loop") {
-                            moveTask = MoveBackAndForth(cancellationToken, BackAndForthDistance, BackAndForthVelocity);
+                            moveTask = MoveBackAndForth(BackAndForthDistance, BackAndForthVelocity, cancellationToken);
                         } else {
                             throw new Exception("Back and Forth move is only possible in Closed Loop");
                         }
                     } else {
                         moveTask = null;
                     }
-                    Task measureTask = Measure();
-
-                    await measureTask;
+                    await Measure();
                     cts.Cancel();
-                    await _axis.Stop(false).WaitForSuccessAsync(TimeSpan.FromSeconds(10));
+                    await _axis.Stop();
                     if (moveTask != null) {
                         await moveTask;
                     }
