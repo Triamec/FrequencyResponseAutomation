@@ -62,7 +62,7 @@ Press **Disable** to switch off the axis.
 ```csharp
 await _axis.Disable();
 ```
-Press **Measure** to start a frequency response measurement. The executed measurements will by default be saved to `FrequencyResponseAutomation\Frequency Response Automation\bin\Debug\net8\Frequency Response`
+Press **Measure** to start a frequency response measurement. The executed measurements will by default be saved to `FrequencyResponseAutomation\Frequency Response Automation\bin\Debug\net10.0-windows\Frequency Response`
 ```csharp
         async void OnMeasureButtonClick(object sender, EventArgs e) {
             try {

@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <OutputType>WinExe</OutputType>
     <RootNamespace>Triamec.Tam.Samples</RootNamespace>
     <ApplicationIcon>Properties\App.ico</ApplicationIcon>
@@ -16,5 +16,6 @@
   <ItemGroup>
     <PackageReference Include="Triamec.Tam.Commissioning.FrequencyResponseAnalysis" Version="1.0.0" />
     <PackageReference Include="Triamec.Tam.Motion" Version="1.1.0" />
+    <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.13" />
   </ItemGroup>
 </Project>
